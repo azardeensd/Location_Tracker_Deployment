@@ -158,11 +158,11 @@ const normalizeVehicleNumber = (vehicleNumber) => {
   };
 
   // Fetch data on component mount
-  useEffect(() => {
-    checkAdminStatus();
-    fetchAgencies();
-    fetchVehicles();
-  }, []);
+useEffect(() => {
+  checkAdminStatus();
+  fetchAgencies();
+  fetchVehicles();
+}, [checkAdminStatus, fetchAgencies, fetchVehicles]);
 
   // Fetch agencies based on user's plant
   const fetchAgencies = async () => {
