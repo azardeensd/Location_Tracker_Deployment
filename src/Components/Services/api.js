@@ -40,6 +40,7 @@ const verifyCaptcha = async (token) => {
     return false;
   }
 };
+
 // Common login logic
 const commonLogin = async (credentials) => {
   try {
