@@ -1,0 +1,726 @@
+/* DriverPage.module.css - Mobile Responsive Design (max-width: 400px) */
+@media (max-width: 400px) {
+  .pageWrapper {
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+  
+  /* .driverPage {
+    padding: 0;
+    background: #f2f2f2;
+    position: relative;
+  } */
+  
+  .container {
+    padding: 10px;
+    max-width: 100%;
+    margin: 0;
+    display: block;
+    position: relative;
+  }
+  
+  /* Status Card - Compact Design */
+  .statusCard {
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    position: relative;
+    z-index: 1;
+  }
+  
+  .statusTitle {
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+    text-align: center;
+    padding: 0;
+    -webkit-text-fill-color: green;
+  }
+  
+  .activeTripDetails {
+    padding: 0;
+  }
+  
+  .statusLine {
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  
+  .statusLine:last-child {
+    border-bottom: none;
+  }
+  
+  .label {
+    min-width: 120px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #031b6b;
+    display: inline-block;
+    margin-right: 5px;
+  }
+  
+  .value {
+    font-size: 13px;
+    color: #000000;
+    margin-left: 0;
+    text-align: left;
+    flex: 1;
+    word-break: break-word;
+    line-height: 1.3;
+  }
+  
+  /* Controls - Better Button Sizing */
+  .controls {
+    padding: 10px 0;
+    margin-top: 0;
+    position: relative;
+    z-index: 1;
+  }
+  
+ /* Base button styles without colors */
+.btn {
+  padding: 1.2rem 3rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.6s ease;
+}
+
+.btn:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+/* START BUTTON - Blue gradient */
+.startBtn {
+  background: linear-gradient(135deg, #1274c9 0%, #1f08c9e0 100%);
+  color: white;
+}
+
+.startBtn:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 15px 30px rgba(79, 172, 254, 0.4);
+  background: linear-gradient(135deg, #3aa0fe 0%, #040999 100%);
+}
+
+/* END BUTTON - Orange/Yellow gradient */
+.endBtn {
+  background: linear-gradient(135deg, #ff6b35 0%, #f9c74f 100%);
+  color: white;
+}
+
+.endBtn:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 15px 30px rgba(255, 107, 53, 0.4);
+  background: linear-gradient(135deg, #ff8c5a 0%, #ffd166 100%);
+}
+
+/* Alternative END BUTTON - Red gradient option */
+/* .endBtn {
+  background: linear-gradient(135deg, #ef476f 0%, #ff9a5a 100%);
+  color: white;
+}
+
+.endBtn:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 15px 30px rgba(239, 71, 111, 0.4);
+  background: linear-gradient(135deg, #ff6b8b 0%, #ffb37a 100%);
+} */
+
+
+@media (max-width: 400px) {
+  .btn {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 1.1rem;
+    border-radius: 25px;
+    margin: 5px 0;
+  }
+  
+  .startBtn, .endBtn {
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  
+  .startBtn {
+    background: linear-gradient(135deg, #1274c9 0%, #1f08c9e0 100%);
+  }
+  
+  .endBtn {
+    background: linear-gradient(135deg, #ff6b35 0%, #f9c74f 100%);
+  }
+}
+  
+  /* ===========================================
+     FIXED POPUP OVERLAY STYLES
+     =========================================== */
+  .popupOverlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    z-index: 9999 !important;
+    backdrop-filter: blur(5px) !important;
+    overflow-y: auto !important;
+    padding: 8px !important;
+    margin: 0 !important;
+  }
+  
+  .popup {
+    background: white;
+    border-radius: 16px;
+    padding: 0;
+    max-width: 100%;
+    width: 100%;
+    max-height: 95vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+    animation: mobilePopupAppear 0.3s ease-out;
+    position: relative;
+    z-index: 10000;
+    margin: auto 0;
+  }
+  
+  @keyframes mobilePopupAppear {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  .popupHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    background: linear-gradient(135deg, #031462 0%, #031462 100%);
+    color: rgb(244, 243, 243);
+    border-radius: 16px 16px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  .popupHeader h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  
+  .closeBtn {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    color: white;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    min-height: 32px;
+    min-width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .closeBtn:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  
+  /* Form Styling */
+  .form {
+    padding: 15px;
+    display: block;
+  }
+  
+  .formGroup {
+    margin-bottom: 15px;
+  }
+  
+  .formGroup label {
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: #333;
+    font-weight: 600;
+    display: block;
+  }
+  
+  .formGroup input,
+  .formGroup select,
+  .formGroup textarea {
+    font-size: 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+  }
+  
+  .readonlyInput {
+    padding: 10px 12px;
+    background: #f8f9fa;
+    color: #666;
+    font-size: 14px;
+    min-height: 44px;
+  }
+  
+  /* Trip Info in End Popup */
+  .TripInfo {
+    margin: 1px 0 1px ;
+    padding: 3px;
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    font-size: 19px;
+  }
+    
+  /* .TripInfo .statusItem {
+    min-width: 95%;
+    padding: 3px;
+    background: rgb(212, 19, 19);
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+  } */
+  
+  /* .TripInfo .statusItem .label {
+    font-size: 11px;
+    margin-bottom: 4px;
+    min-width: auto;
+  }
+   */
+  /* .TripInfo .statusItem .value {
+    font-size: 13px;
+    font-weight: 600;
+  } */
+  
+  .TripInfo .statusLine {
+    flex-direction: row;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    padding: 5px 0;
+  }
+  
+  .TripInfo .label {
+    min-width: 110px;
+    font-size: 12px;
+    color: #031b6b;
+    margin-bottom: 0;
+    width: auto;
+  }
+  
+  .TripInfo .value {
+    font-size: 13px;
+    color: #000000;
+    flex: 1;
+  }
+  
+  /* Radio Buttons - Mobile Friendly */
+  .radioGroupLabel {
+    font-size: 14px;
+    margin-bottom: 2px;
+    color: #333;
+    font-weight: 600;
+  }
+  
+  .radioGroup {
+    display: inline-flex;
+    flex-direction: row;
+    gap: 115px;
+    justify-content: space-between;
+  }
+  
+  /* .radioLabel {
+    flex: 1;
+    min-width: 120px;
+    display: inline;
+    align-items: center;
+    cursor: pointer;
+    padding: 1px;
+    transition: all 0.3s ease;
+    margin: 0;
+    position: relative;
+  } */
+  
+  .radioLabel:hover {
+    border-color: #667eea;
+    background: #f8f9ff;
+  }
+  
+  .radioLabel input[type="radio"] {
+    margin-right: 8px;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #667eea;
+    min-width: 14px;
+  }
+  
+  .radioLabel input[type="radio"]:checked {
+    background-color: #667eea;
+    border-color: #667eea;
+  }
+  
+  .radioLabel input[type="radio"]:checked ~ .radioText {
+    color: #667eea;
+    font-weight: 600;
+  }
+  
+  .radioText {
+    font-size: 15px;
+    color: #e90611;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+---------------------------------------------------------------------  
+  /* Vendor Details and Preview */
+  .vendorDetails,
+  .vendorPreview {
+    padding: 10px;
+    margin-top: 8px;
+    font-size: 12px;
+    background: white;
+    border-radius: 6px;
+    border-left: 3px solid #4caf50;
+  }
+  
+  .vendorPreview p {
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 4px 0;
+    gap: 2px;
+  }
+  
+  .vendorPreview p strong {
+    min-width: auto;
+    font-size: 12px;
+    color: #2e7d32;
+  }
+  
+  /* Location Section */
+  .coordinatesDisplay {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .coordinateField {
+    margin-bottom: 8px;
+  }
+  
+  .coordinateLabel {
+    font-size: 11px;
+    margin-bottom: 4px;
+    color: #666;
+    font-weight: 600;
+  }
+  
+  .addressInput {
+    font-size: 13px;
+    padding: 10px;
+    min-height: 60px;
+    line-height: 1.4;
+    width: 100%;
+    background-color: #f9f9f9;
+  }
+  
+  .locationBtn {
+    padding: 12px;
+    font-size: 14px;
+    margin-top: 8px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    min-height: 44px;
+    width: 100%;
+    border: none;
+    cursor: pointer;
+  }
+  
+  /* Form Actions */
+  .formActions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: center;
+  }
+  
+  .cancelBtn,
+  .submitBtn {
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+    min-width: auto;
+    margin: 0;
+    border-radius: 10px;
+    min-height: 44px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  
+  .cancelBtn {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+    color: white;
+  }
+  
+  .submitBtn {
+    background-color: #e02e1a;
+    color: white;
+  }
+  
+  .submitBtn:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+  }
+  
+  /* Error and Help Text */
+  .errorText,
+  .noData,
+  .helpText {
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  
+  .errorText {
+    color: #ff6b6b;
+  }
+  
+  .noData {
+    color: #ff6b6b;
+    font-style: italic;
+  }
+  
+  .helpText {
+    color: #666;
+    font-size: 11px;
+    margin-top: 5px;
+  }
+  
+  /* Journey Info */
+  .journeyInfo {
+    margin: 10px 0;
+    padding: 12px;
+  }
+  
+  /* Location Inputs */
+  .locationInputs {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  
+  /* Scrollbar Styling for Mobile */
+  .popup::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .popup::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  .popup::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 2px;
+  }
+  
+  /* Touch-friendly adjustments */
+  button {
+    min-height: 44px;
+  }
+  
+  select,
+  input,
+  textarea {
+    font-size: 16px;
+  }
+  
+  /* Destination Input Groups */
+  .destinationGroup {
+    margin-bottom: 15px;
+  }
+  
+  .plantDestination {
+    padding: 12px;
+  }
+  
+  .vendorDropdownGroup {
+    padding: 12px;
+  }
+  
+  .vendorDropdownGroup select.requiredField {
+    border-color: #dc3545;
+    background-color: #fff5f5;
+  }
+  
+  /* Form Row for larger screens */
+  .formRow {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .formRow .formGroup {
+    width: 100%;
+  }
+  
+  /* Geo Button Container */
+  .geoButtonContainer {
+    margin-bottom: 20px;
+  }
+  
+  /* ===========================================
+     FIX FOR OVERLAY ISSUE - IMPORTANT
+     =========================================== */
+  /* Ensure popup overlay covers everything */
+  body.popup-open {
+    overflow: hidden !important;
+    height: 100vh !important;
+    position: fixed !important;
+    width: 100% !important;
+  }
+  
+  /* Hide main content when popup is open */
+  .container.popup-active {
+    filter: blur(3px);
+    pointer-events: none;
+    user-select: none;
+  }
+  
+  /* Make sure popup is always on top */
+  .popupOverlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 99999 !important;
+  }
+  
+  /* Ensure popup content is properly contained */
+  .popup > * {
+    position: relative;
+  }
+  
+  /* Optimize for very small screens */
+  @media (max-width: 360px) {
+    .container {
+      padding: 8px;
+    }
+    
+    .statusCard {
+      padding: 12px;
+    }
+    
+    .form {
+      padding: 12px;
+    }
+    
+    .popupHeader {
+      padding: 10px 12px;
+    }
+    
+    
+    .TripInfo {
+      padding: 10px;
+    }
+    
+    .TripInfo .label {
+      min-width: 100px;
+      font-size: 11px;
+    }
+    
+    .TripInfo .value {
+      font-size: 12px;
+    }
+    
+    .radioLabel {
+      min-width: 100px;
+      padding: 8px 10px;
+    }
+    
+    .radioText {
+      font-size: 12px;
+    }
+  }
+  
+  /* Landscape mode optimization */
+  @media (max-height: 500px) and (orientation: landscape) {
+    .popupOverlay {
+      align-items: flex-start;
+      padding: 10px;
+    }
+    
+    .popup {
+      max-height: 90vh;
+      margin: 10px auto;
+    }
+    
+    .form {
+      padding: 10px 15px;
+    }
+    
+    .TripInfo {
+      padding: 10px;
+      margin: 8px 0;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+  }
+  
+  /* Specific fixes for 400px width */
+  @media (max-width: 400px) and (min-width: 360px) {
+    .TripInfo .label {
+      min-width: 130px;
+    }
+    
+    .radioGroup {
+      justify-content: flex-start;
+    }
+    
+    .radioLabel {
+      flex: none;
+      width: calc(50% - 5px);
+    }
+  }
+}

@@ -1,0 +1,948 @@
+
+/* Main Page Layout */
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
+
+/* Specific Content Container */
+.rateMasterContainer {
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Header Styles */
+.header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.title {
+  color: #2c3e50;
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Add Button */
+.addButton {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1), 0 2px 4px -1px rgba(37, 99, 235, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.addButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.15), 0 4px 6px -2px rgba(37, 99, 235, 0.1);
+  filter: brightness(1.1);
+}
+
+/* Content Wrapper - For future use if needed */
+.contentWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 20px;
+}
+
+/* Form Card Styling */
+.formCard {
+  background: white;
+  padding: 13px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 570px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e1e8ed;
+}
+
+.formHeader {
+  text-align: center;
+  margin-bottom: 0px;
+}
+
+.formHeader h2 {
+  color: #1e293b;
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.helperText {
+  color: #64748b;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Form Elements */
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #334155;
+  font-size: 14px;
+}
+
+.input, .select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #1e293b;
+  background-color: white;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.input:focus, .select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 8.825L1.175 4 2.238 2.938 6 6.7 9.763 2.938 10.825 4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+}
+
+/* Type Selection Buttons */
+.radioGroup {
+  display: flex;
+  gap: 12px;
+}
+
+.typeButton {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  color: #64748b;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.typeButton:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.activeType {
+  background-color: #eff6ff;
+  border-color: #3b82f6;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+/* Input addons (Symbols, Suffixes) */
+.inputWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.inputSuffix {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.currencySymbol {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.input.hasSymbol {
+  padding-left: 28px;
+}
+
+/* Range Inputs Layout */
+.rangeInputs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.separator {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+/* Messages */
+.errorMessage {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.successMessage {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+/* Form Actions */
+.formActions {
+  margin-top: 30px;
+}
+
+/* Submit Button */
+.submitButton {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1), 0 2px 4px -1px rgba(37, 99, 235, 0.06);
+  width: 100%;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.15), 0 4px 6px -2px rgba(37, 99, 235, 0.1);
+  filter: brightness(1.1);
+}
+
+.submitButton:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Rates List Section */
+.ratesListSection {
+  margin-top: 30px;
+}
+
+.sectionHeader {
+  margin-bottom: 25px;
+}
+
+.sectionHeader h2 {
+  color: #1e293b;
+  margin: 0 0 8px 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+/* Loading State */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e1e8ed;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e1e8ed;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.emptyState h3 {
+  color: #1e293b;
+  margin: 0 0 10px 0;
+  font-size: 20px;
+}
+
+.emptyState p {
+  color: #64748b;
+  margin: 0 0 20px 0;
+}
+
+.emptyStateButton {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.emptyStateButton:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+/* Rates Grid */
+.ratesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+/* Rate Card */
+.rateCard {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e1e8ed;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.rateCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+  border-color: #3b82f6;
+}
+
+.rateCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.rateTypeBadge {
+  padding: 6px 12px;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.rateAmount {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.rateUnit {
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.rateCardBody {
+  padding: 20px 15px;
+}
+
+.rateInfoRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.rateInfoRow:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.infoLabel {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.infoValue {
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.rateCardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.rateId {
+  color: #94a3b8;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.editButton {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editButton:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #475569;
+}
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+  backdrop-filter: blur(3px);
+}
+
+.modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modalHeader h2 {
+  color: #1e293b;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.modalClose:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.modalBody {
+  padding: 0;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.cancelButton {
+  padding: 12px 24px;
+  background: #e2e8f0;
+  color: #475569;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background: #cbd5e0;
+}
+
+.cancelButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ratesGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .headerRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .addButton {
+    width: 100%;
+  }
+  
+  .modal {
+    max-width: 95%;
+  }
+  
+  .rangeInputs {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .separator {
+    display: none;
+  }
+  
+  .rateMasterContainer {
+    padding: 10px;
+  }
+  
+  .formCard {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .rateCard {
+    margin-bottom: 15px;
+  }
+  
+  .modalBody {
+    padding: 15px;
+  }
+  
+  .modalFooter {
+    flex-direction: column;
+  }
+  
+  .cancelButton, .submitButton {
+    width: 100%;
+  }
+}
+
+/* Table Container */
+.tableContainer {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-top: 20px;
+}
+
+.ratesTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1200px;
+}
+
+.ratesTable thead {
+  background: #022267;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.ratesTable th {
+  padding: 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #f5f6f5;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.ratesTable td {
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.ratesTable tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.ratesTable tbody tr:hover {
+  background-color: #f7fafc;
+}
+
+.ratesTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Cell Styles */
+.idCell {
+  width: 80px;
+}
+
+.idBadge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #edf2f7;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.plantCell {
+  min-width: 180px;
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.agencyCell {
+  min-width: 200px;
+  color: #4a5568;
+}
+
+.typeCell {
+  width: 140px;
+}
+
+.typeBadge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  min-width: 110px;
+}
+
+.tripBadge {
+  background: #e6fffa;
+  color: #0d9488;
+  border: 1px solid #5eead4;
+}
+
+.kmBadge {
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #7dd3fc;
+}
+
+.toneCell {
+  width: 100px;
+}
+
+.toneBadge {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.rangeCell {
+  width: 150px;
+}
+
+.rangeDisplay {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.rangeFrom,
+.rangeTo {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.rangeSeparator {
+  color: #a0aec0;
+}
+
+.rangeUnit {
+  color: #718096;
+  font-size: 12px;
+}
+
+.noRange {
+  color: #a0aec0;
+  font-style: italic;
+  font-size: 14px;
+}
+
+.rateCell {
+  width: 150px;
+}
+
+.rateAmount {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 600;
+}
+
+.currencySymbol {
+  color: #059669;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rateValue {
+  color: #059669;
+  font-size: 16px;
+}
+
+.rateUnit {
+  color: #718096;
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+.dateCell {
+  width: 120px;
+  color: #718096;
+  font-size: 14px;
+}
+
+.actionsCell {
+  width: 180px;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.editBtn,
+.deleteBtn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editBtn {
+  background: #3b82f6;
+  color: white;
+}
+
+.editBtn:hover {
+  background: #2563eb;
+}
+
+.deleteBtn {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.deleteBtn:hover {
+  background: #fee2e2;
+}
+
+/* Responsive Table */
+@media (max-width: 1200px) {
+  .tableContainer {
+    overflow-x: auto;
+  }
+  
+  .ratesTable {
+    min-width: 1000px;
+  }
+}
+
+/* Loading and Empty States */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  margin-top: 20px;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.emptyState h3 {
+  margin-bottom: 8px;
+  color: #2d3748;
+}
+
+.emptyState p {
+  color: #718096;
+  margin-bottom: 20px;
+}
+
+.emptyStateButton {
+  padding: 10px 20px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.emptyStateButton:hover {
+  background: #2563eb;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
