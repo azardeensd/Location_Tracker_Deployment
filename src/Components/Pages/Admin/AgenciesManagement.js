@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { api } from '../../Services/api';
 import styles from './AgenciesManagement.module.css';
 import AdminNavigation from '../../Common/Admin/AdminNavigation';
@@ -53,66 +53,70 @@ const AgenciesManagement = () => {
     return plant ? plant.location : 'Unknown Location';
   };
 
-  // Fetch data and check admin status on component mount
-  useEffect(() => {
-    checkAdminStatus();
-    fetchAgencies();
-    fetchPlants();
-  }, []);
+useEffect(() => {
+  checkAdminStatus();
+  fetchAgencies();
+  fetchPlants();
+}, [checkAdminStatus, fetchAgencies, fetchPlants]);
 
-  const checkAdminStatus = () => {
-    try {
-      const currentUser = getCurrentUser();
-      console.log('🛠️ Current user in AgenciesManagement:', currentUser);
-      
-      // Check if user has admin role
-      const userIsAdmin = currentUser?.role === 'admin';
-      console.log('🛠️ Is user admin?:', userIsAdmin);
-      
-      setIsAdmin(userIsAdmin);
-      
-      // Store in localStorage for consistency
-      if (currentUser?.role) {
-        localStorage.setItem('isAdmin', userIsAdmin);
-      }
-    } catch (err) {
-      console.error('Error checking admin status:', err);
-      // Fallback
-      const storedAdminStatus = localStorage.getItem('isAdmin');
-      if (storedAdminStatus) {
-        setIsAdmin(storedAdminStatus === 'true');
-      }
-    }
-  };
 
-  const fetchAgencies = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await api.getAgencies();
-      if (error) {
-        setError('Failed to fetch agencies');
-        return;
-      }
-      setAgencies(data || []);
-    } catch (err) {
-      setError('Error fetching agencies');
-    } finally {
-      setLoading(false);
-    }
-  };
+// 1️⃣ Check admin status
+const checkAdminStatus = useCallback(() => {
+  try {
+    const currentUser = getCurrentUser(); // your helper function
+    console.log('🛠️ Current user in AgenciesManagement:', currentUser);
 
-  const fetchPlants = async () => {
-    try {
-      const { data, error } = await api.getPlants();
-      if (error) {
-        console.error('Failed to fetch plants');
-        return;
-      }
-      setPlants(data || []);
-    } catch (err) {
-      console.error('Error fetching plants');
+    const userIsAdmin = currentUser?.role === 'admin';
+    console.log('🛠️ Is user admin?:', userIsAdmin);
+
+    setIsAdmin(userIsAdmin);
+
+    // Store in localStorage
+    if (currentUser?.role) {
+      localStorage.setItem('isAdmin', userIsAdmin);
     }
-  };
+  } catch (err) {
+    console.error('Error checking admin status:', err);
+
+    // Fallback from localStorage
+    const storedAdminStatus = localStorage.getItem('isAdmin');
+    if (storedAdminStatus) {
+      setIsAdmin(storedAdminStatus === 'true');
+    }
+  }
+}, []);
+
+// 2️⃣ Fetch Agencies (async + useCallback)
+const fetchAgencies = useCallback(async () => {
+  setLoading(true);
+  try {
+    const { data, error } = await api.getAgencies();
+    if (error) {
+      setError('Failed to fetch agencies');
+      return;
+    }
+    setAgencies(data || []);
+  } catch (err) {
+    setError('Error fetching agencies');
+  } finally {
+    setLoading(false);
+  }
+}, []);
+
+// 3️⃣ Fetch Plants (async + useCallback)
+const fetchPlants = useCallback(async () => {
+  try {
+    const { data, error } = await api.getPlants();
+    if (error) {
+      console.error('Failed to fetch plants');
+      return;
+    }
+    setPlants(data || []);
+  } catch (err) {
+    console.error('Error fetching plants');
+  }
+}, []);
+
 
   // Search functionality - NOW AFTER HELPER FUNCTIONS
   const filteredAgencies = agencies.filter(agency => {
