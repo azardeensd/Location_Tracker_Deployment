@@ -150,7 +150,18 @@ useEffect(() => {
   } else {
     console.log('Skipping departments for role:', currentUser.role);
   }
-}, [navigate]);
+},  [
+  navigate, 
+  getCurrentUser, 
+  checkAccess, 
+  loadUsers, 
+  loadAgencies, 
+  loadPlants, 
+  loadRoles, 
+  loadModules, 
+  loadPermissions, 
+  loadDepartments
+]);
 
   const loadUsers = async () => {
   try {
