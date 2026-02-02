@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
 import { api } from '../../Services/api';
 import supabase from '../../Services/api';
 import styles from './VehiclesManagement.module.css';
@@ -24,17 +24,17 @@ const VehiclesManagement = () => {
   });
 
   // Enhanced helper function to normalize vehicle number
-const normalizeVehicleNumber = (vehicleNumber) => {
-  if (!vehicleNumber) return '';
-  
-  return vehicleNumber
-    .replace(/[^a-zA-Z0-9]/g, '') // Remove all special characters and spaces
-    .toUpperCase()
-    .trim();
-};
+  const normalizeVehicleNumber = (vehicleNumber) => {
+    if (!vehicleNumber) return '';
+    
+    return vehicleNumber
+      .replace(/[^a-zA-Z0-9]/g, '') // Remove all special characters and spaces
+      .toUpperCase()
+      .trim();
+  };
 
   // Get current user with plant data
-  const getCurrentUser = () => {
+  const getCurrentUser = useCallback(() => {
     const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
     const plantAdminData = JSON.parse(localStorage.getItem('plantAdminData') || '{}');
     const userData = JSON.parse(localStorage.getItem('userData') || '{}');
@@ -45,7 +45,56 @@ const normalizeVehicleNumber = (vehicleNumber) => {
     if (userData.id) return { ...userData, role: userData.role || 'user' };
     
     return {};
-  };
+  }, []);
+
+  // Check admin status - wrapped in useCallback
+  const checkAdminStatus = useCallback(() => {
+    try {
+      const currentUser = getCurrentUser();
+      console.log('🛠️ Current user in VehiclesManagement:', currentUser);
+      
+      // Check if user has admin role
+      const userIsAdmin = currentUser?.role === 'admin';
+      console.log('🛠️ Is user admin?:', userIsAdmin);
+      
+      setIsAdmin(userIsAdmin);
+      
+      // Store in localStorage for consistency
+      if (currentUser?.role) {
+        localStorage.setItem('isAdmin', userIsAdmin);
+      }
+    } catch (err) {
+      console.error('Error checking admin status:', err);
+      // Fallback
+      const storedAdminStatus = localStorage.getItem('isAdmin');
+      if (storedAdminStatus) {
+        setIsAdmin(storedAdminStatus === 'true');
+      }
+    }
+  }, [getCurrentUser]);
+
+  // Get user's plant ID
+  const getUserPlantId = useCallback(() => {
+    const user = getCurrentUser();
+    console.log('👤 Current user:', user);
+    
+    if (user.role === 'admin') {
+      return null; // Admin can see all
+    }
+    
+    // Get plant_id from user data
+    const plant_id = user.plant_id || user.plantid;
+    console.log('🏭 User plant ID:', plant_id);
+    return plant_id;
+  }, [getCurrentUser]);
+
+  // Get user's plant name
+  const getUserPlantName = useCallback(() => {
+    const user = getCurrentUser();
+    if (user.role === 'admin') return null;
+    
+    return user.plant_name || user.plant?.name || user.plant || 'Your Plant';
+  }, [getCurrentUser]);
 
   // Helper functions - MOVED BEFORE SEARCH FILTER
   const getAgencyName = (agencyId) => {
@@ -101,71 +150,15 @@ const normalizeVehicleNumber = (vehicleNumber) => {
   };
 
   // Check if user can add vehicles
-  const canAddVehicles = () => {
+  const canAddVehicles = useCallback(() => {
     const currentUser = getCurrentUser();
     return currentUser.role === 'admin' || 
            currentUser.role === 'plant_admin' || 
            currentUser.plant_id;
-  };
+  }, [getCurrentUser]);
 
-  // Check admin status
-  const checkAdminStatus = () => {
-    try {
-      const currentUser = getCurrentUser();
-      console.log('🛠️ Current user in VehiclesManagement:', currentUser);
-      
-      // Check if user has admin role
-      const userIsAdmin = currentUser?.role === 'admin';
-      console.log('🛠️ Is user admin?:', userIsAdmin);
-      
-      setIsAdmin(userIsAdmin);
-      
-      // Store in localStorage for consistency
-      if (currentUser?.role) {
-        localStorage.setItem('isAdmin', userIsAdmin);
-      }
-    } catch (err) {
-      console.error('Error checking admin status:', err);
-      // Fallback
-      const storedAdminStatus = localStorage.getItem('isAdmin');
-      if (storedAdminStatus) {
-        setIsAdmin(storedAdminStatus === 'true');
-      }
-    }
-  };
-
-  // Get user's plant ID
-  const getUserPlantId = () => {
-    const user = getCurrentUser();
-    console.log('👤 Current user:', user);
-    
-    if (user.role === 'admin') {
-      return null; // Admin can see all
-    }
-    
-    // Get plant_id from user data
-    const plant_id = user.plant_id || user.plantid;
-    console.log('🏭 User plant ID:', plant_id);
-    return plant_id;
-  };
-
-  // Get user's plant name
-  const getUserPlantName = () => {
-    const user = getCurrentUser();
-    if (user.role === 'admin') return null;
-    
-    return user.plant_name || user.plant?.name || user.plant || 'Your Plant';
-  };
-
-  // Fetch data on component mount
-useEffect(() => {
-  checkAdminStatus();
-  fetchAgencies();
-  fetchVehicles();
-}, [checkAdminStatus, fetchAgencies, fetchVehicles]);
-
-  // Fetch agencies based on user's plant
-  const fetchAgencies = async () => {
+  // Fetch agencies based on user's plant - wrapped in useCallback
+  const fetchAgencies = useCallback(async () => {
     try {
       const userPlantId = getUserPlantId();
       console.log('🔄 Fetching agencies for plant ID:', userPlantId);
@@ -200,10 +193,10 @@ useEffect(() => {
       console.error('❌ Error fetching agencies:', err);
       setError('Error fetching agencies: ' + err.message);
     }
-  };
+  }, [getUserPlantId]);
 
-  // Fetch vehicles based on user's plant
-  const fetchVehicles = async () => {
+  // Fetch vehicles based on user's plant - wrapped in useCallback
+  const fetchVehicles = useCallback(async () => {
     setLoading(true);
     try {
       const userPlantId = getUserPlantId();
@@ -241,7 +234,14 @@ useEffect(() => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getUserPlantId]);
+
+  // Fetch data on component mount
+  useEffect(() => {
+    checkAdminStatus();
+    fetchAgencies();
+    fetchVehicles();
+  }, [checkAdminStatus, fetchAgencies, fetchVehicles]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -866,7 +866,7 @@ useEffect(() => {
           )}
         </div>
       </div>
-    </ AdminNavigation>
+    </AdminNavigation>
   );
 };
 
