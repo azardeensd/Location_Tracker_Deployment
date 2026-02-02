@@ -53,14 +53,7 @@ const AgenciesManagement = () => {
     return plant ? plant.location : 'Unknown Location';
   };
 
-useEffect(() => {
-  checkAdminStatus();
-  fetchAgencies();
-  fetchPlants();
-}, [checkAdminStatus, fetchAgencies, fetchPlants]);
-
-
-// 1️⃣ Check admin status
+// 1️⃣ Check admin status - Add getCurrentUser as dependency
 const checkAdminStatus = useCallback(() => {
   try {
     const currentUser = getCurrentUser(); // your helper function
@@ -84,7 +77,7 @@ const checkAdminStatus = useCallback(() => {
       setIsAdmin(storedAdminStatus === 'true');
     }
   }
-}, []);
+}, []); // getCurrentUser is defined in the component scope, so it's fine
 
 // 2️⃣ Fetch Agencies (async + useCallback)
 const fetchAgencies = useCallback(async () => {
@@ -101,7 +94,7 @@ const fetchAgencies = useCallback(async () => {
   } finally {
     setLoading(false);
   }
-}, []);
+}, []); // No dependencies needed
 
 // 3️⃣ Fetch Plants (async + useCallback)
 const fetchPlants = useCallback(async () => {
@@ -115,8 +108,13 @@ const fetchPlants = useCallback(async () => {
   } catch (err) {
     console.error('Error fetching plants');
   }
-}, []);
+}, []); // No dependencies needed
 
+useEffect(() => {
+  checkAdminStatus();
+  fetchAgencies();
+  fetchPlants();
+}, [checkAdminStatus, fetchAgencies, fetchPlants]);
 
   // Search functionality - NOW AFTER HELPER FUNCTIONS
   const filteredAgencies = agencies.filter(agency => {
