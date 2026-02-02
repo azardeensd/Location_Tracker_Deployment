@@ -16,7 +16,6 @@ const supabase = getSupabaseClient();
 
 const MAPMYINDIA_API_KEY = '8b8a24aa829d919051bce41caee609af';
 
-// CAPTCHA verification function
 // CAPTCHA verification function - UPDATED
 const verifyCaptcha = async (token) => {
   try {
