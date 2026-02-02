@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../Services/api';
 import styles from './UserManagement.module.css';
@@ -32,161 +32,75 @@ const UserManagement = () => {
     is_active: true
   });
 
-  // Get current user to check permissions
-const getCurrentUser = () => {
-  // First check adminData (contains all admin, finance, hr, super_admin users)
-  const adminDataStr = localStorage.getItem('adminData');
-  if (adminDataStr) {
-    try {
-      const adminData = JSON.parse(adminDataStr);
-      if (adminData && adminData.role) {
-        console.log('Found user in adminData:', adminData.role, adminData.username);
-        return adminData;
+  // Get current user to check permissions - wrapped in useCallback
+  const getCurrentUser = useCallback(() => {
+    // First check adminData (contains all admin, finance, hr, super_admin users)
+    const adminDataStr = localStorage.getItem('adminData');
+    if (adminDataStr) {
+      try {
+        const adminData = JSON.parse(adminDataStr);
+        if (adminData && adminData.role) {
+          console.log('Found user in adminData:', adminData.role, adminData.username);
+          return adminData;
+        }
+      } catch (e) {
+        console.error('Error parsing adminData:', e);
       }
-    } catch (e) {
-      console.error('Error parsing adminData:', e);
     }
-  }
-  
-  // Then check plantAdminData
-  const plantAdminDataStr = localStorage.getItem('plantAdminData');
-  if (plantAdminDataStr) {
-    try {
-      const plantAdminData = JSON.parse(plantAdminDataStr);
-      if (plantAdminData && plantAdminData.role) {
-        console.log('Found user in plantAdminData:', plantAdminData.role, plantAdminData.username);
-        return plantAdminData;
-      }
-    } catch (e) {
-      console.error('Error parsing plantAdminData:', e);
-    }
-  }
-  
-  console.log('No user data found in localStorage');
-  return {};
-};
-  const checkAccess = () => {
-  const currentUser = getCurrentUser();
-  if (!currentUser || !currentUser.role) return false;
-
-  const allowedRoles = ['admin', 'plant_admin', 'finance', 'hr', 'super_admin'];
-  // Convert role to lowercase to avoid "HR" vs "hr" issues
-  return allowedRoles.includes(currentUser.role.toLowerCase());
-};
-
-useEffect(() => {
-  console.log('=== UserManagement Component Mounted ===');
-  
-  // Debug: Show all localStorage
-  console.log('=== LocalStorage Contents ===');
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    const value = localStorage.getItem(key);
-    console.log(`${key}:`, typeof value === 'string' && value.length > 100 ? 
-      `${value.substring(0, 100)}...` : value);
-  }
-  
-  const currentUser = getCurrentUser();
-  console.log('=== Current User ===');
-  console.log('Full user object:', currentUser);
-  console.log('User role:', currentUser?.role);
-  console.log('User ID:', currentUser?.id);
-  console.log('Username:', currentUser?.username);
-  
-  const hasPermission = checkAccess();
-  console.log('=== Access Check Result ===');
-  console.log('Has permission to access UserManagement:', hasPermission);
-  
-  if (!hasPermission) {
-    console.log('Access DENIED for UserManagement');
-    setHasAccess(false);
-    setMessage({ 
-      type: 'error', 
-      text: `Access denied. Admin, Finance, HR, or Plant Admin privileges required. Your role: "${currentUser?.role || 'none'}"`
-    });
     
-    // Redirect based on user role
-    setTimeout(() => {
-      if (!currentUser || !currentUser.role) {
-        console.log('No user found, redirecting to /admin');
-        navigate('/admin');
-      } else if (currentUser.role === 'driver') {
-        console.log('Driver role, redirecting to /driver');
-        navigate('/driver');
-      } else if (currentUser.role === 'plant_admin') {
-        console.log('Plant admin role, redirecting to /dashboard');
-        navigate('/dashboard');
-      } else {
-        console.log('Redirecting to /dashboard');
-        navigate('/dashboard');
+    // Then check plantAdminData
+    const plantAdminDataStr = localStorage.getItem('plantAdminData');
+    if (plantAdminDataStr) {
+      try {
+        const plantAdminData = JSON.parse(plantAdminDataStr);
+        if (plantAdminData && plantAdminData.role) {
+          console.log('Found user in plantAdminData:', plantAdminData.role, plantAdminData.username);
+          return plantAdminData;
+        }
+      } catch (e) {
+        console.error('Error parsing plantAdminData:', e);
       }
-    }, 3000);
-    return;
-  }
+    }
+    
+    console.log('No user data found in localStorage');
+    return {};
+  }, []);
 
-  if (!currentUser || (!currentUser.role && !currentUser.id)) {
-    console.log('No valid user found, redirecting to /admin');
-    navigate('/admin');
-    return;
-  }
-
-  console.log('Access GRANTED for UserManagement');
-  setHasAccess(true);
-  
-  // Load all data
-  console.log('Loading data for user:', currentUser.username);
-  loadUsers();
-  loadAgencies();
-  loadPlants();
-  loadRoles();
-  loadModules();
-  loadPermissions();
-  
-  // Load departments for specific roles
-  const rolesThatNeedDepartments = ['admin', 'plant_admin', 'finance', 'hr', 'super_admin'];
-  if (rolesThatNeedDepartments.includes(currentUser.role)) {
-    console.log('Loading departments for role:', currentUser.role);
-    loadDepartments();
-  } else {
-    console.log('Skipping departments for role:', currentUser.role);
-  }
-},  [
-  navigate, 
-  getCurrentUser, 
-  checkAccess, 
-  loadUsers, 
-  loadAgencies, 
-  loadPlants, 
-  loadRoles, 
-  loadModules, 
-  loadPermissions, 
-  loadDepartments
-]);
-
-  const loadUsers = async () => {
-  try {
+  // Check access - wrapped in useCallback
+  const checkAccess = useCallback(() => {
     const currentUser = getCurrentUser();
-    let response;
+    if (!currentUser || !currentUser.role) return false;
 
-    if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
-      response = await api.getUsers();
-    } else if (currentUser.plant_id) {
-      // Use the new method we just added
-      response = await api.getUsersByPlant(currentUser.plant_id);
+    const allowedRoles = ['admin', 'plant_admin', 'finance', 'hr', 'super_admin'];
+    // Convert role to lowercase to avoid "HR" vs "hr" issues
+    return allowedRoles.includes(currentUser.role.toLowerCase());
+  }, [getCurrentUser]);
+
+  // Load functions - all wrapped in useCallback with proper dependencies
+
+  const loadUsers = useCallback(async () => {
+    try {
+      const currentUser = getCurrentUser();
+      let response;
+
+      if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
+        response = await api.getUsers();
+      } else if (currentUser.plant_id) {
+        response = await api.getUsersByPlant(currentUser.plant_id);
+      }
+
+      if (response && !response.error) {
+        setUsers(response.data || []);
+      } else {
+        setMessage({ type: 'error', text: 'Failed to load users' });
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+      setMessage({ type: 'error', text: 'Error loading users' });
     }
+  }, [getCurrentUser]);
 
-    if (response && !response.error) {
-      setUsers(response.data || []);
-    } else {
-      setMessage({ type: 'error', text: 'Failed to load users' });
-    }
-  } catch (error) {
-    console.error('Error loading users:', error);
-    setMessage({ type: 'error', text: 'Error loading users' });
-  }
-};
-
-  const loadAgencies = async () => {
+  const loadAgencies = useCallback(async () => {
     try {
       const currentUser = getCurrentUser();
       let agenciesData;
@@ -199,7 +113,6 @@ useEffect(() => {
         }
         agenciesData = response.data || [];
       } else if (currentUser.role === 'finance' || currentUser.role === 'hr') {
-        // Finance/HR users see agencies from their plant
         if (currentUser.plant_id) {
           const response = await api.getAgenciesByPlant(currentUser.plant_id);
           if (response.error) {
@@ -224,15 +137,14 @@ useEffect(() => {
       console.error('Error loading agencies:', error);
       setMessage({ type: 'error', text: 'Error loading agencies' });
     }
-  };
+  }, [getCurrentUser]);
 
-  const loadPlants = async () => {
+  const loadPlants = useCallback(async () => {
     try {
       const currentUser = getCurrentUser();
       let plantsData;
 
       if (currentUser.role === 'plant_admin' && currentUser.plant_id) {
-        // Plant admin can only see their own plant
         const response = await api.getPlantById(currentUser.plant_id);
         if (response.error) {
           console.error('Failed to load plant:', response.error);
@@ -240,7 +152,6 @@ useEffect(() => {
         }
         plantsData = response.data ? [response.data] : [];
       } else if (currentUser.role === 'finance' || currentUser.role === 'hr') {
-        // Finance/HR users see their assigned plant
         if (currentUser.plant_id) {
           const response = await api.getPlantById(currentUser.plant_id);
           if (response.error) {
@@ -252,7 +163,6 @@ useEffect(() => {
           plantsData = [];
         }
       } else {
-        // Admin can see all plants
         const response = await api.getPlants();
         if (response.error) {
           console.error('Failed to load plants:', response.error);
@@ -266,9 +176,9 @@ useEffect(() => {
       console.error('Error loading plants:', error);
       setMessage({ type: 'error', text: 'Error loading plants' });
     }
-  };
+  }, [getCurrentUser]);
 
-  const loadDepartments = async () => {
+  const loadDepartments = useCallback(async () => {
     try {
       const { data, error } = await api.getDepartments();
       if (!error && data) {
@@ -279,9 +189,9 @@ useEffect(() => {
     } catch (error) {
       console.error('Error loading departments:', error);
     }
-  };
+  }, []);
 
-  const loadRoles = async () => {
+  const loadRoles = useCallback(async () => {
     try {
       const { data, error } = await api.getRoles();
       if (!error && data) {
@@ -301,9 +211,9 @@ useEffect(() => {
     } catch (error) {
       console.error('Error loading roles:', error);
     }
-  };
+  }, []);
 
-  const loadModules = async () => {
+  const loadModules = useCallback(async () => {
     try {
       const { data, error } = await api.getModules();
       if (!error && data) {
@@ -314,9 +224,9 @@ useEffect(() => {
     } catch (error) {
       console.error('Error loading modules:', error);
     }
-  };
+  }, []);
 
-  const loadPermissions = async () => {
+  const loadPermissions = useCallback(async () => {
     try {
       const { data, error } = await api.getPermissions();
       if (!error && data) {
@@ -327,7 +237,7 @@ useEffect(() => {
     } catch (error) {
       console.error('Error loading permissions:', error);
     }
-  };
+  }, []);
 
   // Helper function to validate Gmail
   const validateGmail = (email) => {
@@ -342,6 +252,103 @@ useEffect(() => {
     );
   };
 
+  // Reset form function
+  const resetForm = useCallback(() => {
+    const currentUser = getCurrentUser();
+    setUserForm({
+      username: '',
+      password: '',
+      email: '',
+      agency_id: '',
+      plant_id: (currentUser?.role === 'hr' || currentUser?.role === 'finance') 
+                 ? currentUser.plant_id 
+                 : '',
+      department_id: '',
+      role: 'driver',
+      is_active: true
+    });
+    setUserPermissions({});
+    setShowPermissions(false);
+  }, [getCurrentUser]);
+
+  // Main useEffect with all dependencies
+  useEffect(() => {
+    console.log('=== UserManagement Component Mounted ===');
+    
+    const currentUser = getCurrentUser();
+    console.log('=== Current User ===');
+    console.log('Full user object:', currentUser);
+    console.log('User role:', currentUser?.role);
+    console.log('User ID:', currentUser?.id);
+    console.log('Username:', currentUser?.username);
+    
+    const hasPermission = checkAccess();
+    console.log('=== Access Check Result ===');
+    console.log('Has permission to access UserManagement:', hasPermission);
+    
+    if (!hasPermission) {
+      console.log('Access DENIED for UserManagement');
+      setHasAccess(false);
+      setMessage({ 
+        type: 'error', 
+        text: `Access denied. Admin, Finance, HR, or Plant Admin privileges required. Your role: "${currentUser?.role || 'none'}"`
+      });
+      
+      setTimeout(() => {
+        if (!currentUser || !currentUser.role) {
+          console.log('No user found, redirecting to /admin');
+          navigate('/admin');
+        } else if (currentUser.role === 'driver') {
+          console.log('Driver role, redirecting to /driver');
+          navigate('/driver');
+        } else if (currentUser.role === 'plant_admin') {
+          console.log('Plant admin role, redirecting to /dashboard');
+          navigate('/dashboard');
+        } else {
+          console.log('Redirecting to /dashboard');
+          navigate('/dashboard');
+        }
+      }, 3000);
+      return;
+    }
+
+    if (!currentUser || (!currentUser.role && !currentUser.id)) {
+      console.log('No valid user found, redirecting to /admin');
+      navigate('/admin');
+      return;
+    }
+
+    console.log('Access GRANTED for UserManagement');
+    setHasAccess(true);
+    
+    console.log('Loading data for user:', currentUser.username);
+    loadUsers();
+    loadAgencies();
+    loadPlants();
+    loadRoles();
+    loadModules();
+    loadPermissions();
+    
+    const rolesThatNeedDepartments = ['admin', 'plant_admin', 'finance', 'hr', 'super_admin'];
+    if (rolesThatNeedDepartments.includes(currentUser.role)) {
+      console.log('Loading departments for role:', currentUser.role);
+      loadDepartments();
+    } else {
+      console.log('Skipping departments for role:', currentUser.role);
+    }
+  }, [
+    navigate, 
+    getCurrentUser, 
+    checkAccess, 
+    loadUsers, 
+    loadAgencies, 
+    loadPlants, 
+    loadRoles, 
+    loadModules, 
+    loadPermissions, 
+    loadDepartments
+  ]);
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     
@@ -352,7 +359,6 @@ useEffect(() => {
       [name]: newValue
     }));
 
-    // Clear email if role changes to non-plant roles
     if (name === 'role') {
       const selectedRole = roles.find(r => r.code === newValue);
       const isPlantRole = selectedRole ? ['plant_admin', 'plant_user'].includes(selectedRole.code) : false;
@@ -362,7 +368,6 @@ useEffect(() => {
           email: ''
         }));
       }
-      // Clear department if role changes to driver
       if (selectedRole && selectedRole.code === 'driver') {
         setUserForm(prev => ({
           ...prev,
@@ -375,13 +380,11 @@ useEffect(() => {
   const handleCreateUser = async (e) => {
     e.preventDefault();
     
-    // Basic validation
     if (!userForm.username || !userForm.password) {
       setMessage({ type: 'error', text: 'Username and password are required' });
       return;
     }
 
-    // Check if username already exists
     const usernameExists = checkUsernameExists(userForm.username);
     if (usernameExists) {
       setMessage({ type: 'error', text: 'Username already exists. Please choose a different username.' });
@@ -394,7 +397,6 @@ useEffect(() => {
       return;
     }
 
-    // Email validation for plant roles
     const isPlantRole = ['plant_admin', 'plant_user'].includes(selectedRole.code);
     if (isPlantRole) {
       if (!userForm.email) {
@@ -407,26 +409,22 @@ useEffect(() => {
       }
     }
 
-    // For drivers, agency is required
     if (selectedRole.code === 'driver' && !userForm.agency_id) {
       setMessage({ type: 'error', text: 'Transporter is required for drivers' });
       return;
     }
 
-    // PLANT IS REQUIRED FOR ALL ROLES
     if (!userForm.plant_id) {
       setMessage({ type: 'error', text: 'Plant is required for all roles' });
       return;
     }
 
-    // Department is required for certain roles
     const needsDepartment = ['plant_admin', 'plant_user', 'super_admin', 'finance', 'hr'].includes(selectedRole.code);
     if (needsDepartment && !userForm.department_id) {
       setMessage({ type: 'error', text: 'Department is required for ' + selectedRole.name + ' role' });
       return;
     }
 
-    // Validate plant_id exists in plants table
     if (userForm.plant_id) {
       const selectedPlant = plants.find(plant => plant.id === userForm.plant_id);
       
@@ -440,32 +438,27 @@ useEffect(() => {
     setMessage({ type: '', text: '' });
 
     try {
-      // Prepare user data - PLANT IS ALWAYS INCLUDED
       const userData = {
         username: userForm.username.trim(),
         password: userForm.password,
         role: userForm.role,
         is_active: userForm.is_active,
         agency_id: userForm.agency_id || null,
-        plant_id: userForm.plant_id, // ALWAYS include plant_id
+        plant_id: userForm.plant_id,
         department_id: userForm.department_id || null,
         email: isPlantRole ? userForm.email.trim() : 'Not Applicable'
       };
 
-      // Check if we need to use custom permissions or default ones
       let response;
       if (showPermissions && Object.keys(userPermissions).length > 0) {
-        // Use createUserWithPermissions for custom permissions
         response = await api.createUserWithPermissions(userData, userPermissions);
       } else {
-        // Use default permissions based on role
         response = await api.createUser(userData);
       }
       
       if (response.error) {
         console.error('API Error:', response.error);
         
-        // Handle duplicate username error from backend
         if (response.error.message && response.error.message.includes('duplicate key value violates unique constraint "users_username_key"')) {
           setMessage({ type: 'error', text: 'Username already exists. Please choose a different username.' });
         } else if (response.error.message && response.error.message.includes('duplicate') && response.error.message.includes('username')) {
@@ -486,7 +479,6 @@ useEffect(() => {
     } catch (error) {
       console.error('Error creating user:', error);
       
-      // Handle duplicate username error from catch block
       if (error.message && error.message.includes('duplicate key value violates unique constraint "users_username_key"')) {
         setMessage({ type: 'error', text: 'Username already exists. Please choose a different username.' });
       } else if (error.message && error.message.includes('duplicate') && error.message.includes('username')) {
@@ -507,7 +499,6 @@ useEffect(() => {
     const newShowPermissions = !showPermissions;
     setShowPermissions(newShowPermissions);
     
-    // If showing permissions for the first time, initialize with empty permissions
     if (newShowPermissions && Object.keys(userPermissions).length === 0) {
       const defaultPerms = {};
       modules.forEach(module => {
@@ -535,27 +526,7 @@ useEffect(() => {
     }
   };
 
-  // Reset form function
-  const resetForm = () => {
-  const currentUser = getCurrentUser(); // Get current logged in user
-  
-  setUserForm({
-    username: '',
-    password: '',
-    email: '',
-    agency_id: '',
-    // If current user is HR/Finance, auto-set the plant_id from their own data
-    plant_id: (currentUserRoleCode === 'hr' || currentUserRoleCode === 'finance') 
-               ? currentUser.plant_id 
-               : '',
-    department_id: '',
-    role: 'driver',
-    is_active: true
-  });
-  setUserPermissions({});
-  setShowPermissions(false);
-};
-
+  // Helper functions
   const getAgencyName = (agencyId) => {
     if (!agencyId) return 'N/A';
     const agency = agencies.find(a => a.id === agencyId);
@@ -572,20 +543,6 @@ useEffect(() => {
     if (!plantId) return 'N/A';
     const plant = plants.find(p => p.id === plantId);
     return plant ? plant.location : 'N/A';
-  };
-
-  const getAgencyPlantName = (agencyId) => {
-    if (!agencyId) return 'N/A';
-    const agency = agencies.find(a => a.id === agencyId);
-    if (!agency || !agency.plant_id) return 'N/A';
-    return getPlantName(agency.plant_id);
-  };
-
-  const getAgencyPlantLocation = (agencyId) => {
-    if (!agencyId) return 'N/A';
-    const agency = agencies.find(a => a.id === agencyId);
-    if (!agency || !agency.plant_id) return 'N/A';
-    return getPlantLocation(agency.plant_id);
   };
 
   const getDepartmentName = (departmentId) => {
@@ -605,27 +562,22 @@ useEffect(() => {
 
   // Filter roles based on current user's permissions
   const getAvailableRoles = () => {
-    // Super Admin can create all roles except admin
     if (currentUserRoleCode === 'admin') {
       return roles.filter(role => role.code !== 'admin');
     }
     
-    // Plant Admin can create plant_user and driver roles
     if (currentUserRoleCode === 'plant_admin') {
       return roles.filter(role => ['plant_user', 'driver'].includes(role.code));
     }
     
-    // Finance users can create drivers only
     if (currentUserRoleCode === 'finance') {
       return roles.filter(role => role.code === 'driver');
     }
     
-    // HR users can create drivers and plant_user
     if (currentUserRoleCode === 'hr') {
       return roles.filter(role => ['driver', 'plant_user'].includes(role.code));
     }
     
-    // Default: only driver role
     return roles.filter(role => role.code === 'driver');
   };
 
@@ -642,11 +594,6 @@ useEffect(() => {
   // Check if a role requires department
   const roleRequiresDepartment = (roleCode) => {
     return ['plant_admin', 'plant_user', 'super_admin', 'finance', 'hr'].includes(roleCode);
-  };
-
-  // Check if a role requires plant - NOW TRUE FOR ALL ROLES
-  const roleRequiresPlant = (roleCode) => {
-    return true; // Plant is required for ALL roles
   };
 
   if (!hasAccess) {
@@ -678,7 +625,7 @@ useEffect(() => {
             onClick={() => {resetForm();
               setShowCreateForm(true);
             }}
-            disabled={currentUserRoleCode === 'finance'} // Finance can only view, not create
+            disabled={currentUserRoleCode === 'finance'}
           >
             + Add New User
           </button>
@@ -747,7 +694,6 @@ useEffect(() => {
                       />
                     </div>
 
-                    {/* Email Field - Only for roles that require it */}
                     {roleRequiresEmail(userForm.role) && (
                       <div className={styles.formGroup}>
                         <label>Gmail *</label>
@@ -790,7 +736,6 @@ useEffect(() => {
                       </select>
                     </div>
 
-                    {/* Department Selection */}
                     {roleRequiresDepartment(userForm.role) && (
                       <div className={styles.formGroup}>
                         <label>Department *</label>
@@ -814,7 +759,6 @@ useEffect(() => {
                       </div>
                     )}
 
-                    {/* Transporter Selection */}
                     <div className={styles.formGroup}>
                       <label>
                         Transporter {roleRequiresTransporter(userForm.role) && '*'}
@@ -840,7 +784,6 @@ useEffect(() => {
                       )}
                     </div>
 
-                    {/* Plant Selection - FOR ALL ROLES */}
                     <div className={styles.formGroup}>
                       <label>
                         Plant *
@@ -1006,7 +949,7 @@ useEffect(() => {
                           <button
                             className={`${styles.toggleBtn} ${user.is_active ? styles.deactivate : styles.activate}`}
                             onClick={() => handleToggleActive(user.id, user.is_active)}
-                            disabled={currentUserRoleCode === 'hr'} // HR can't toggle status
+                            disabled={currentUserRoleCode === 'hr'}
                           >
                             {user.is_active ? 'Deactivate' : 'Activate'}
                           </button>
