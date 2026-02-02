@@ -17,80 +17,26 @@ const supabase = getSupabaseClient();
 const MAPMYINDIA_API_KEY = '8b8a24aa829d919051bce41caee609af';
 
 // CAPTCHA verification function
-// CAPTCHA verification function
 const verifyCaptcha = async (token) => {
   try {
     console.log('CAPTCHA token received:', token);
-    console.log('Current environment:', process.env.NODE_ENV);
-    
-    // For production: Accept the token without server verification
-    // This is a TEMPORARY solution - NOT recommended for production
-    if (process.env.NODE_ENV === 'production') {
-      console.log('Production mode: CAPTCHA verification bypassed for deployment');
-      console.log('⚠️ WARNING: This disables server-side CAPTCHA verification!');
-      console.log('⚠️ IMPORTANT: Set up serverless function for production security');
-      
-      // Still validate that we have a token
-      if (!token || token.length < 10) {
-        console.log('Invalid or missing CAPTCHA token');
-        return false;
-      }
-      
-      // Basic token validation (client-side only)
-      // Check if it looks like a valid reCAPTCHA token
-      const tokenPattern = /^[A-Za-z0-9_-]+$/;
-      if (!tokenPattern.test(token)) {
-        console.log('Invalid CAPTCHA token format');
-        return false;
-      }
-      
-      console.log('✅ Production: CAPTCHA token accepted (bypassed verification)');
-      return true;
-    }
-    
-    // For development/testing, you can bypass CAPTCHA
+   
     if (process.env.NODE_ENV === 'development') {
       console.log('Development mode: CAPTCHA verification bypassed');
       return true;
     }
-    
-    // For other environments or if you want to enable server verification later
-    // Note: This will fail in Vercel deployment unless you set up the API route
-    console.log('Attempting server-side CAPTCHA verification...');
+
     const response = await fetch('/api/verify-captcha', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token })
     });
 
-    if (!response.ok) {
-      console.error('CAPTCHA API response not OK:', response.status);
-      throw new Error(`CAPTCHA verification failed: ${response.status}`);
-    }
-
     const data = await response.json();
-    console.log('CAPTCHA verification response:', data);
-    
     return data.success === true;
-    
+   
   } catch (error) {
     console.error('CAPTCHA verification error:', error);
-    
-    // If we're in production and the API call fails, we have options:
-    if (process.env.NODE_ENV === 'production') {
-      console.log('⚠️ Production fallback: Accepting CAPTCHA due to API error');
-      console.log('⚠️ Reason:', error.message);
-      
-      // Option 1: Accept it anyway (least secure)
-      // return true;
-      
-      // Option 2: Reject it (more secure but might block users)
-      return false;
-      
-      // Option 3: Implement a fallback validation
-      // return await fallbackCaptchaValidation(token);
-    }
-    
     return false;
   }
 };
