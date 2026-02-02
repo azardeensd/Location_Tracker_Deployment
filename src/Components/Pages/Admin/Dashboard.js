@@ -1,5 +1,5 @@
 // src/components/Dashboard.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../../Services/api';
 import styles from './Dashboard.module.css';
 import AdminNavigation from '../../Common/Admin/AdminNavigation';
@@ -48,14 +48,14 @@ const Dashboard = () => {
     }
   };
 
-  // Get user's plant ID
-  const getUserPlantId = () => {
-    const user = getCurrentUser();
-    if (user.role === 'admin') {
-      return null; // Admin can see all
-    }
-    return user.plant_id || user.plantid;
-  };
+  const getUserPlantId = useCallback(() => {
+  const user = getCurrentUser();
+  if (user.role === 'admin') {
+    return null; // Admin can see all
+  }
+  return user.plant_id || user.plantid;
+}, []); // getCurrentUser doesn't change, so empty dependency array is fine
+
 
   // Get user's plant name
   const getUserPlantName = () => {
@@ -64,45 +64,54 @@ const Dashboard = () => {
     return user.plant_name || user.plant?.name || user.plant || 'Your Plant';
   };
 
-  // Fetch trips data
-  const fetchTrips = async () => {
-    setLoading(true);
-    try {
-      const userPlantId = getUserPlantId();
-      console.log('🔄 Fetching trips for plant ID:', userPlantId);
+  // Wrap fetchTrips in useCallback or define it inside useEffect
 
-      let response;
-      
-      if (userPlantId) {
-        // Fetch trips for specific plant
-        response = await api.getTripsByPlant(userPlantId);
-      } else {
-        // Fetch all trips for admin
-        response = await api.getAllTrips();
-      }
+// Option A: Wrap fetchTrips in useCallback (recommended)
+const fetchTrips = useCallback(async () => {
+  setLoading(true);
+  try {
+    const userPlantId = getUserPlantId();
+    console.log('🔄 Fetching trips for plant ID:', userPlantId);
 
-      console.log('✅ Trips response:', response);
-
-      if (response.error) {
-        setError(response.error.message || 'Failed to fetch trips');
-        return;
-      }
-
-      const tripsData = response.data || [];
-      console.log('📊 Raw trips data:', tripsData);
-      setTrips(tripsData);
-      setFilteredTrips(tripsData); // Initialize filtered trips
-
-      // Calculate statistics
-      calculateStats(tripsData);
-
-    } catch (err) {
-      console.error('❌ Error fetching trips:', err);
-      setError('Error fetching trips: ' + err.message);
-    } finally {
-      setLoading(false);
+    let response;
+    
+    if (userPlantId) {
+      // Fetch trips for specific plant
+      response = await api.getTripsByPlant(userPlantId);
+    } else {
+      // Fetch all trips for admin
+      response = await api.getAllTrips();
     }
-  };
+
+    console.log('✅ Trips response:', response);
+
+    if (response.error) {
+      setError(response.error.message || 'Failed to fetch trips');
+      return;
+    }
+
+    const tripsData = response.data || [];
+    console.log('📊 Raw trips data:', tripsData);
+    setTrips(tripsData);
+    setFilteredTrips(tripsData); // Initialize filtered trips
+
+    // Calculate statistics
+    calculateStats(tripsData);
+
+  } catch (err) {
+    console.error('❌ Error fetching trips:', err);
+    setError('Error fetching trips: ' + err.message);
+  } finally {
+    setLoading(false);
+  }
+}, [getUserPlantId]); // Add all dependencies if needed
+
+// Then update the useEffect
+useEffect(() => {
+  const user = getCurrentUser();
+  setCurrentUser(user);
+  fetchTrips();
+}, [fetchTrips]); // Now fetchTrips is properly included
 
   // Apply date filter
   const applyDateFilter = () => {
@@ -515,12 +524,6 @@ const Dashboard = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  // Initialize component
-  useEffect(() => {
-    const user = getCurrentUser();
-    setCurrentUser(user);
-    fetchTrips();
-  }, [fetchTrips]);
 
   const userPlantName = getUserPlantName();
   const isAdmin = currentUser.role === 'admin';
