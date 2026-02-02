@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useCallback} from 'react';
 import { api } from '../../Services/api';
 import styles from './RateMaster.module.css';
 import AdminNavigation from '../../Common/Admin/AdminNavigation';
@@ -33,36 +33,38 @@ const RateMaster = () => {
   for (let i = 0.5; i <= 5.5; i += 0.5) tones.push(i);
   for (let i = 6; i <= 30; i += 1) tones.push(i);
 
-  // Fetch Plants, Agencies and Rates on Mount
-  useEffect(() => {
-    fetchData();
-  }, []);
 
-  const fetchData = async () => {
-    try {
-      // Fetch plants
-      const { data: plantsData, error: plantsError } = await api.getPlants();
-      if (plantsError) {
-        setError('Failed to fetch plants');
-      } else {
-        setPlants(plantsData || []);
-      }
-
-      // Fetch agencies
-      const { data: agenciesData, error: agenciesError } = await api.getAgencies();
-      if (agenciesError) {
-        setError('Failed to fetch agencies');
-      } else {
-        setAgencies(agenciesData || []);
-      }
-
-      // Fetch existing rates
-      await fetchRates();
-    } catch (err) {
-      setError('Error fetching data');
-      setIsLoadingRates(false);
+  // Wrap fetchData in useCallback to prevent infinite re-renders
+const fetchData = useCallback(async () => {
+  try {
+    // Fetch plants
+    const { data: plantsData, error: plantsError } = await api.getPlants();
+    if (plantsError) {
+      setError('Failed to fetch plants');
+    } else {
+      setPlants(plantsData || []);
     }
-  };
+
+    // Fetch agencies
+    const { data: agenciesData, error: agenciesError } = await api.getAgencies();
+    if (agenciesError) {
+      setError('Failed to fetch agencies');
+    } else {
+      setAgencies(agenciesData || []);
+    }
+
+    // Fetch existing rates
+    await fetchRates();
+  } catch (err) {
+    setError('Error fetching data');
+    setIsLoadingRates(false);
+  }
+}, []); // Empty dependency array
+
+// Then update useEffect with the dependency
+useEffect(() => {
+  fetchData();
+}, [fetchData]); // Include fetchData as dependency
 
   const fetchRates = async () => {
     setIsLoadingRates(true);
