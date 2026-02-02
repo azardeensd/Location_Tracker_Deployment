@@ -1,4 +1,3 @@
-//included CAPTCHA validation in login page//
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
@@ -57,7 +56,7 @@ const Login = () => {
       return;
     }
 
-    // CAPTCHA validation
+    // CAPTCHA validation - show warning in production if not verified
     if (!captchaVerified) {
       setError('Please complete the CAPTCHA verification');
       return;
@@ -70,6 +69,8 @@ const Login = () => {
       // Get the CAPTCHA token
       const captchaToken = await recaptchaRef.current.getValue();
       
+      // For production, we accept the token without server verification
+      // For development, we can still validate
       if (!captchaToken) {
         setError('CAPTCHA verification failed. Please try again.');
         setLoading(false);
@@ -140,7 +141,7 @@ const Login = () => {
           <form onSubmit={handleSubmit} className={styles.loginForm}>
             {error && (
               <div className={styles.errorMessage}>
-                ⚠️ Username or Password is incorrect
+                ⚠️ {error}
               </div>
             )}
 
@@ -217,6 +218,11 @@ const Login = () => {
 
           <div className={styles.footer}>
             <p>Contact admin for login credentials</p>
+            {process.env.NODE_ENV === 'production' && (
+              <p className={styles.warningText} style={{ fontSize: '10px', color: '#ff9900', marginTop: '5px' }}>
+                ⚠️ CAPTCHA verification is simplified in production mode
+              </p>
+            )}
           </div>
         </div>
       </div>
