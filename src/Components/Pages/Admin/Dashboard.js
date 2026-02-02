@@ -520,7 +520,7 @@ const Dashboard = () => {
     const user = getCurrentUser();
     setCurrentUser(user);
     fetchTrips();
-  }, []);
+  }, [fetchTrips]);
 
   const userPlantName = getUserPlantName();
   const isAdmin = currentUser.role === 'admin';
