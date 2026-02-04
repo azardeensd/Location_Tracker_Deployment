@@ -380,56 +380,81 @@ const VehiclesManagement = () => {
 
   // Toggle vehicle status (active/inactive)
   const toggleVehicleStatus = async (vehicleId, currentStatus) => {
-    if (loading) return;
-    
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    const confirmMessage = newStatus === 'inactive' 
-      ? 'Are you sure you want to deactivate this vehicle? It will not be available for new trips.'
-      : 'Are you sure you want to activate this vehicle? It will be available for new trips.';
-    
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
+  if (loading) return;
+  
+  const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+  const confirmMessage = newStatus === 'inactive' 
+    ? 'Are you sure you want to deactivate this vehicle? It will not be available for new trips but existing trips will remain.'
+    : 'Are you sure you want to activate this vehicle? It will be available for new trips.';
+  
+  if (!window.confirm(confirmMessage)) {
+    return;
+  }
 
-    setLoading(true);
-    try {
-      console.log(`🔄 Updating vehicle ${vehicleId} status to: ${newStatus}`);
-      
-      const { data, error } = await supabase
-        .from('vehicles')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', vehicleId)
-        .select()
-        .single();
-      
-      if (error) {
-        throw error;
+  setLoading(true);
+  try {
+    console.log(`🔄 Updating vehicle ${vehicleId} status to: ${newStatus}`);
+    
+    // First check if vehicle has active trips when trying to deactivate
+    if (newStatus === 'inactive') {
+      const hasTrips = await checkVehicleHasTrips(vehicleId);
+      if (hasTrips) {
+        const proceed = window.confirm(
+          'This vehicle has existing trips. Deactivating will prevent it from being assigned to new trips, but existing trips will remain. Do you want to continue?'
+        );
+        if (!proceed) {
+          setLoading(false);
+          return;
+        }
       }
-      
-      console.log('✅ Vehicle status updated:', data);
-      
-      // Update local state
-      setVehicles(prevVehicles => 
-        prevVehicles.map(vehicle => 
-          vehicle.id === vehicleId 
-            ? { ...vehicle, status: newStatus }
-            : vehicle
-        )
-      );
-      
-      setSuccess(`Vehicle ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully!`);
-      setTimeout(() => setSuccess(''), 3000);
-      
-    } catch (err) {
-      console.error('❌ Error updating vehicle status:', err);
-      setError('Error updating vehicle status: ' + err.message);
-    } finally {
-      setLoading(false);
     }
-  };
+    
+    const response = await api.updateVehicle(vehicleId, { 
+      status: newStatus,
+      updated_at: new Date().toISOString()
+    });
+    
+    if (response.error) {
+      // Handle foreign key constraint error specifically
+      if (response.error.code === '23503') {
+        throw new Error('Cannot deactivate vehicle with active trips. Please complete or reassign trips first.');
+      }
+      throw new Error(response.error.message);
+    }
+    
+    console.log('✅ Vehicle status updated:', response.data);
+    
+    // Update local state
+    setVehicles(prevVehicles => 
+      prevVehicles.map(vehicle => 
+        vehicle.id === vehicleId 
+          ? { ...vehicle, status: newStatus }
+          : vehicle
+      )
+    );
+    
+    setSuccess(`Vehicle ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully!`);
+    setTimeout(() => setSuccess(''), 3000);
+    
+  } catch (err) {
+    console.error('❌ Error updating vehicle status:', err);
+    setError('Error updating vehicle status: ' + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Helper function to check if vehicle has trips
+const checkVehicleHasTrips = async (vehicleId) => {
+  try {
+    // You'll need to implement this API endpoint
+    const response = await api.getVehicleTrips(vehicleId);
+    return response.data && response.data.length > 0;
+  } catch (err) {
+    console.error('Error checking vehicle trips:', err);
+    return false; // Assume no trips on error
+  }
+};
 
   const handleSubmit = async (e) => {
     if (editingVehicle) {
