@@ -395,24 +395,27 @@ const VehiclesManagement = () => {
   try {
     console.log(`🔄 Updating vehicle ${vehicleId} status to: ${newStatus}`);
     
-    // First check if vehicle has active trips when trying to deactivate
-    if (newStatus === 'inactive') {
-      const hasTrips = await checkVehicleHasTrips(vehicleId);
-      if (hasTrips) {
-        const proceed = window.confirm(
-          'This vehicle has existing trips. Deactivating will prevent it from being assigned to new trips, but existing trips will remain. Do you want to continue?'
-        );
-        if (!proceed) {
-          setLoading(false);
-          return;
-        }
-      }
-    }
+    // === DEBUGGING: Check what's available ===
+    console.log('🔍 Is api defined?', typeof api);
+    console.log('🔍 Is api.updateVehicle a function?', typeof api?.updateVehicle);
+    console.log('🔍 Full api object:', api ? Object.keys(api) : 'api is undefined');
     
-    const response = await api.updateVehicle(vehicleId, { 
-      status: newStatus,
-      updated_at: new Date().toISOString()
-    });
+    // === OPTION 1: Use direct Supabase call (Quick Fix) ===
+    console.log('🛠️ Using direct Supabase call as workaround');
+    const { data, error } = await supabase
+      .from('vehicles')
+      .update({ 
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', vehicleId)
+      .select()
+      .single();
+    
+    const response = { data, error };
+    
+    // OR: Try using the existing updateVehicleStatus function in api.js
+    // const response = await api.updateVehicleStatus(vehicleId, newStatus);
     
     if (response.error) {
       // Handle foreign key constraint error specifically
@@ -443,7 +446,6 @@ const VehiclesManagement = () => {
     setLoading(false);
   }
 };
-
 // Helper function to check if vehicle has trips
 const checkVehicleHasTrips = async (vehicleId) => {
   try {
