@@ -163,7 +163,7 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: 70px;
   background: linear-gradient(135deg, #02197f 0%, #02197f 100%);
   color: white;
   display: flex;
@@ -208,7 +208,7 @@
   background: linear-gradient(to right, #ffffff, #ffffff);
   -webkit-background-clip: text;
   background-clip: text;
-  color: transparent;
+  
 }
 
 .headerSubtitle {
@@ -259,12 +259,12 @@
 
 .userName {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 1.4rem;
 }
 
 .userRole {
-  font-size: 0.75rem;
-  padding: 3px 3px;
+  font-size: 1.1rem;
+  padding: 3px 9px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.2);
   width: fit-content;
@@ -1295,4 +1295,40 @@
 .content {
   padding: 30px;
   min-height: calc(100vh - 160px);
+}
+
+/* Add these styles to your existing AdminNavigation.module.css */
+
+/* Transporter subtitle in header */
+.transporterSubtitle {
+  font-size: 14px;
+  color: #4fc3f7;
+  font-weight: 500;
+  margin-left: 8px;
+  background: rgba(79, 195, 247, 0.1);
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(79, 195, 247, 0.3);
+}
+
+/* Driver role style */
+.userRole.driver {
+  background: linear-gradient(135deg, #00bcd4, #006064);
+  color: white;
+}
+
+/* For drivers with no sidebar */
+.adminMain.noSidebar {
+  margin-left: 0;
+  width: 100%;
+}
+
+/* If you want to hide sidebar completely for drivers */
+/* .adminSidebar.driverSidebar {
+  display: none;
+} */
+
+/* Make sure the main content adjusts when sidebar is hidden */
+.adminLayout:has(.adminSidebar:empty) .adminMain {
+  margin-left: 0;
 }

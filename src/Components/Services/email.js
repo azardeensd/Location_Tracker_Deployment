@@ -92,7 +92,7 @@ export const sendTripEmail = async (emailData) => {
       cc_count: ccEmails.split(',').filter(e => e.trim()).length
     });
 
-    const response = await emailjs.send(
+    await emailjs.send(
       EMAILJS_CONFIG.SERVICE_ID,
       EMAILJS_CONFIG.TEMPLATE_ID,
       templateParams
@@ -180,33 +180,7 @@ export const sendCompletionEmail = async (tripData, agency, plantEmails = []) =>
   }
 };
 
-/**
- * Format location coordinates into readable address
- */
-const formatLocation = (location) => {
-  if (!location || !location.lat || !location.lng) {
-    return 'Location data not available';
-  }
-  return `Lat: ${location.lat.toFixed(6)}, Lng: ${location.lng.toFixed(6)}`;
-};
 
-/**
- * Format date for better readability
- */
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  try {
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } catch (error) {
-    return 'Invalid date';
-  }
-};
 
 // Test function to verify EmailJS configuration with new structure
 export const testEmailJS = async () => {
@@ -234,10 +208,12 @@ export const testEmailJS = async () => {
   return await sendTripEmail(testData);
 };
 
-export default { 
+const emailService = { 
   initEmailJS, 
   sendTripEmail, 
   sendCompletionEmail,
   getPlantAdminEmails,
   testEmailJS 
 };
+
+export default emailService;

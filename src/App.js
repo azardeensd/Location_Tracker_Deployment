@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import AdminRoute from './Components/Common/Admin/AdminRoute';
 import PlantAdminRoute from './Components/Common/Admin/PlantAdminRoute';
 
-// Import your page components - NO LEADING SPACES!
+// Import your page components
 import AdminLogin from './Components/Common/Admin/AdminLogin';
 import UserManagement from './Components/Pages/Admin/UserManagement';
 import Supplier from './Components/Pages/Admin/Supplier';
@@ -22,74 +22,81 @@ function App() {
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<AdminLogin />} />
-       
-        {/* Driver Route */}
+        
+        {/* Driver Route (Separate Login) */}
         <Route path="/driver" element={<DriverPage />} />
-       
-        {/* Admin Only Routes - Full Access */}
+        
+        {/* --- SUPER ADMIN ONLY ROUTES --- */}
         <Route
           path="/admin/users"
           element={
-            <AdminRoute>
+            <AdminRoute allowedRoles={['super_admin', 'admin']}>
               <UserManagement />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/supplier"
-          element={
-            <AdminRoute>
-              <Supplier />
             </AdminRoute>
           }
         />
         <Route
           path="/admin/agencies"
           element={
-            <AdminRoute>
+            <AdminRoute allowedRoles={['super_admin', 'admin']}>
               <AgenciesManagement />
             </AdminRoute>
           }
         />
+
+        {/* --- MMD ROUTES (Billing & Supplier) --- */}
+        <Route
+          path="/admin/supplier"
+          element={
+            // MMD can access Supplier + Super Admin
+            <AdminRoute allowedRoles={['super_admin', 'admin', 'mmd']}>
+              <Supplier />
+            </AdminRoute>
+          }
+        />
+
+        {/* --- FINANCE ROUTES (Billing & RateMaster) --- */}
         <Route
           path="/admin/rate-master"
           element={
-            <AdminRoute>
+            // Finance can access RateMaster + Super Admin
+            <AdminRoute allowedRoles={['super_admin', 'admin', 'finance']}>
               <RateMaster />
             </AdminRoute>
           }
         />
-       
-        {/* New Billing Route */}
+        
+        {/* --- SHARED ROUTES (Finance & MMD & Super Admin) --- */}
         <Route
-          path="/admin/billing"
-          element={
-            <AdminRoute>
-              <Billing />
-            </AdminRoute>
-          }
-        />
-       
-        {/* Plant Admin & Admin Routes - Vehicles Access */}
+  path="/admin/billing"
+  element={
+    <AdminRoute allowedRoles={['super_admin', 'admin', 'finance', 'mmd', 'driver']}>
+      <Billing />
+    </AdminRoute>
+  }
+/>
+        
+        {/* --- PLANT ADMIN ROUTES (Dashboard & Vehicles) --- */}
         <Route
           path="/vehicles"
           element={
-            <PlantAdminRoute>
+            // Plant Admin + Super Admin
+            <AdminRoute allowedRoles={['super_admin', 'admin', 'plant_admin']}>
               <VehiclesManagement />
-            </PlantAdminRoute>
+            </AdminRoute>
           }
         />
 
-        {/* Dashboard Route - Accessible for both Admin and Plant Admin */}
         <Route
           path="/dashboard"
           element={
-            <PlantAdminRoute>
+            // Plant Admin + Super Admin
+            <AdminRoute allowedRoles={['super_admin', 'admin', 'plant_admin']}>
               <Dashboard />
-            </PlantAdminRoute>
+            </AdminRoute>
           }
         />
-       
+        
         {/* Redirects */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/admin-login" element={<Navigate to="/admin" replace />} />

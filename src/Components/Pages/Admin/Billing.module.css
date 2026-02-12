@@ -568,3 +568,126 @@
   }
 }
 
+/* Access Control Styles */
+
+.viewOnlyTooltip {
+  display: none;
+  position: absolute;
+  bottom: -30px;
+  left: 0;
+  background: #333;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 100;
+}
+
+.viewOnlyBadge:hover .viewOnlyTooltip {
+  display: block;
+}
+
+.titleWrapper {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.viewOnlyHeaderBadge {
+  background: #ff9800;
+  color: white;
+  padding: 5px 15px;
+  border-radius: 25px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.driverHeaderBadge {
+  background: #2196F3;
+  color: white;
+  padding: 5px 15px;
+  border-radius: 25px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.viewOnlyFooter {
+  margin-top: 20px;
+  padding: 12px;
+  background: #fff3e0;
+  border: 1px solid #ffe0b2;
+  border-radius: 6px;
+  color: #e65100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.viewOnlyIcon {
+  font-size: 18px;
+}
+
+.readOnlyValue {
+  color: #555;
+  font-weight: 500;
+}
+
+.viewOnlyMessage {
+  margin-top: 15px;
+  padding: 10px;
+  background: #f5f5f5;
+  border-left: 4px solid #ff9800;
+  color: #666;
+  font-size: 13px;
+}
+
+.accessDenied {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  margin: 30px auto;
+  max-width: 500px;
+}
+
+.accessDenied h2 {
+  color: #f44336;
+  margin-bottom: 15px;
+  font-size: 24px;
+}
+
+.accessDeniedHint {
+  color: #666;
+  font-size: 13px;
+  margin-top: 10px;
+  font-style: italic;
+}
+
+.backButton {
+  margin-top: 25px;
+  padding: 10px 25px;
+  background: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.titleContainer {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+

@@ -59,11 +59,35 @@ const Supplier = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // 🔒 Check if field is editable during edit mode
+    if (editingId) {
+      const nonEditableFields = ['vendor_code', 'plant', 'vendor_name'];
+      if (nonEditableFields.includes(name)) {
+        // Show a small notification that this field cannot be edited
+        setFormErrors(prev => ({
+          ...prev,
+          [name]: 'This field cannot be edited'
+        }));
+        
+        // Clear the error after 3 seconds
+        setTimeout(() => {
+          setFormErrors(prev => ({
+            ...prev,
+            [name]: ''
+          }));
+        }, 3000);
+        
+        return; // Don't update the value
+      }
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
     
+    // Clear error for this field if it exists
     if (formErrors[name]) {
       setFormErrors(prev => ({
         ...prev,
@@ -75,18 +99,22 @@ const Supplier = () => {
   const validateForm = () => {
     const errors = {};
     
-    if (!formData.vendor_code.trim()) {
-      errors.vendor_code = 'Vendor Code is required';
+    // Only validate required fields during add mode
+    if (!editingId) {
+      if (!formData.vendor_code.trim()) {
+        errors.vendor_code = 'Vendor Code is required';
+      }
+      
+      if (!formData.plant.trim()) {
+        errors.plant = 'Plant is required';
+      }
+      
+      if (!formData.vendor_name.trim()) {
+        errors.vendor_name = 'Vendor Name is required';
+      }
     }
     
-    if (!formData.plant.trim()) {
-      errors.plant = 'Plant is required';
-    }
-    
-    if (!formData.vendor_name.trim()) {
-      errors.vendor_name = 'Vendor Name is required';
-    }
-    
+    // Always validate contact number format if provided
     if (formData.contact_person_number && !/^\d{10}$/.test(formData.contact_person_number)) {
       errors.contact_person_number = 'Please enter a valid 10-digit phone number';
     }
@@ -112,20 +140,32 @@ const Supplier = () => {
     try {
       setLoading(true);
       
-      const finalData = {
-        ...formData,
-        vendor_code: formData.vendor_code || generateVendorCode()
-      };
+      let finalData;
       
       if (editingId) {
+        // 🔒 EDIT MODE: Only allow updating contact information
+        finalData = {
+          contact_person_number: formData.contact_person_number,
+          contact_person_name: formData.contact_person_name,
+          updated_at: new Date().toISOString()
+        };
+        
         const { error } = await api.supabase
           .from('vendor')
           .update(finalData)
           .eq('id', editingId);
         
         if (error) throw error;
-        alert('Supplier updated successfully!');
+        alert('Supplier contact information updated successfully!');
       } else {
+        // ADD MODE: Create new supplier with all fields
+        finalData = {
+          ...formData,
+          vendor_code: formData.vendor_code || generateVendorCode(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
         const { error } = await api.supabase
           .from('vendor')
           .insert([finalData]);
@@ -190,6 +230,7 @@ Vendor Name: ${supplier.vendor_name}
 Contact Person: ${supplier.contact_person_name || 'N/A'}
 Contact Number: ${supplier.contact_person_number || 'N/A'}
 Created: ${new Date(supplier.created_at).toLocaleDateString()}
+Last Updated: ${supplier.updated_at ? new Date(supplier.updated_at).toLocaleDateString() : 'Never'}
     `);
   };
 
@@ -346,7 +387,7 @@ Created: ${new Date(supplier.created_at).toLocaleDateString()}
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2 className={styles.modalTitle}>
-                {editingId ? 'Edit Supplier' : 'Add New Supplier'}
+                {editingId ? 'Edit Supplier Contact Information' : 'Add New Supplier'}
               </h2>
               <button className={styles.modalClose} onClick={handleCloseModal}>
                 ×
@@ -355,75 +396,112 @@ Created: ${new Date(supplier.created_at).toLocaleDateString()}
             
             <form onSubmit={handleSubmit}>
               <div className={styles.modalBody}>
+                {/* {editingId && (
+                  <div className={styles.editModeNotice}>
+                    <span className={styles.editModeIcon}>🔒</span>
+                    <span className={styles.editModeText}>
+                      <strong>Note:</strong> Vendor Code, Plant, and Vendor Name cannot be edited. 
+                      You can only update contact information.
+                    </span>
+                  </div>
+                )} */}
+                
                 <div className={styles.formGrid}>
                   <div className={styles.formGroup}>
                     <label htmlFor="vendor_code" className={styles.formLabel}>
-                      Vendor Code *
+                      Vendor Code {!editingId && '*'}
                     </label>
                     <input
                       type="text"
                       id="vendor_code"
                       name="vendor_code"
-                      className={styles.formInput}
+                      className={`${styles.formInput} ${editingId ? styles.disabledInput : ''}`}
                       value={formData.vendor_code}
                       onChange={handleInputChange}
-                      placeholder="Enter vendor code"
+                      placeholder={editingId ? "Cannot edit vendor code" : "Enter vendor code"}
+                      disabled={editingId}
+                      readOnly={editingId}
                     />
                     {formErrors.vendor_code && (
-                      <span className={styles.errorText}>{formErrors.vendor_code}</span>
+                      <span className={`${styles.errorText} ${editingId ? styles.warningText : ''}`}>
+                        {formErrors.vendor_code}
+                      </span>
+                    )}
+                    {editingId && (
+                      <span className={styles.fieldHelpText}>This field is locked</span>
                     )}
                   </div>
 
                   <div className={styles.formGroup}>
                     <label htmlFor="plant" className={styles.formLabel}>
-                      Plant *
+                      Plant {!editingId && '*'}
                     </label>
-                    <select
-                      id="plant"
-                      name="plant"
-                      className={styles.formSelect}
-                      value={formData.plant}
-                      onChange={handleInputChange}
-                    >
-                      <option value="">Select Plant</option>
-                      {plants.map((plant) => (
-                        <option key={plant.id} value={plant.name}>
-                          {plant.name} - {plant.location}
-                        </option>
-                      ))}
-                    </select>
+                    {editingId ? (
+                      <input
+                        type="text"
+                        id="plant"
+                        name="plant"
+                        className={`${styles.formInput} ${styles.disabledInput}`}
+                        value={formData.plant}
+                        disabled={true}
+                        readOnly={true}
+                      />
+                    ) : (
+                      <select
+                        id="plant"
+                        name="plant"
+                        className={styles.formSelect}
+                        value={formData.plant}
+                        onChange={handleInputChange}
+                      >
+                        <option value="">Select Plant</option>
+                        {plants.map((plant) => (
+                          <option key={plant.id} value={plant.name}>
+                            {plant.name} - {plant.location}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     {formErrors.plant && (
                       <span className={styles.errorText}>{formErrors.plant}</span>
+                    )}
+                    {editingId && (
+                      <span className={styles.fieldHelpText}>Plant cannot be changed</span>
                     )}
                   </div>
 
                   <div className={styles.formGroup}>
                     <label htmlFor="vendor_name" className={styles.formLabel}>
-                      Vendor Name *
+                      Vendor Name {!editingId && '*'}
                     </label>
                     <input
                       type="text"
                       id="vendor_name"
                       name="vendor_name"
-                      className={styles.formInput}
+                      className={`${styles.formInput} ${editingId ? styles.disabledInput : ''}`}
                       value={formData.vendor_name}
                       onChange={handleInputChange}
-                      placeholder="Enter vendor name"
+                      placeholder={editingId ? "Cannot edit vendor name" : "Enter vendor name"}
+                      disabled={editingId}
+                      readOnly={editingId}
                     />
                     {formErrors.vendor_name && (
                       <span className={styles.errorText}>{formErrors.vendor_name}</span>
+                    )}
+                    {editingId && (
+                      <span className={styles.fieldHelpText}>Vendor name is permanent</span>
                     )}
                   </div>
 
                   <div className={styles.formGroup}>
                     <label htmlFor="contact_person_name" className={styles.formLabel}>
-                      Contact Person Name
+                      Contact Person Name {editingId && <span className={styles.editableBadge}></span>}
                     </label>
                     <input
                       type="text"
                       id="contact_person_name"
                       name="contact_person_name"
-                      className={styles.formInput}
+                      className={`${styles.formInput} ${editingId ? styles.editableInput : ''}`}
                       value={formData.contact_person_name}
                       onChange={handleInputChange}
                       placeholder="Enter contact person name"
@@ -432,13 +510,13 @@ Created: ${new Date(supplier.created_at).toLocaleDateString()}
 
                   <div className={styles.formGroup}>
                     <label htmlFor="contact_person_number" className={styles.formLabel}>
-                      Contact Number
+                      Contact Number {editingId && <span className={styles.editableBadge}></span>}
                     </label>
                     <input
                       type="tel"
                       id="contact_person_number"
                       name="contact_person_number"
-                      className={styles.formInput}
+                      className={`${styles.formInput} ${editingId ? styles.editableInput : ''}`}
                       value={formData.contact_person_number}
                       onChange={handleInputChange}
                       placeholder="Enter 10-digit number"
@@ -462,7 +540,7 @@ Created: ${new Date(supplier.created_at).toLocaleDateString()}
                 </button>
                 <button
                   type="submit"
-                  className={styles.primaryButton}
+                  className={`${styles.primaryButton} ${editingId ? styles.updateButton : ''}`}
                   disabled={loading}
                 >
                   {loading ? (
@@ -470,12 +548,12 @@ Created: ${new Date(supplier.created_at).toLocaleDateString()}
                       <span className={styles.spinnerSmall}></span>
                       Saving...
                     </>
-                  ) : editingId ? 'Update Supplier' : 'Add Supplier'}
+                  ) : editingId ? 'Update Contact Information' : 'Add Supplier'}
                 </button>
               </div>
             </form>
           </div>
-          </div>
+        </div>
       )}
     </>
   ); 

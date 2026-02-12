@@ -206,45 +206,57 @@ const PermissionSelector = ({ modules, permissions, selectedPermissions, onChang
                     })}
                   </div>
 
-                  <div className={styles.quickActions}>
-                    <span className={styles.quickActionsLabel}>Quick Presets:</span>
-                    <button
-                      type="button"
-                      className={styles.quickButton}
-                      onClick={() => {
-                        const presetPermissions = ['view'];
-                        const newPerms = { ...selectedPermissions };
-                        newPerms[module.code] = presetPermissions;
-                        onChange(newPerms);
-                      }}
-                    >
-                      View Only
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.quickButton}
-                      onClick={() => {
-                        const presetPermissions = ['view', 'create', 'edit'];
-                        const newPerms = { ...selectedPermissions };
-                        newPerms[module.code] = presetPermissions;
-                        onChange(newPerms);
-                      }}
-                    >
-                      Editor
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.quickButton}
-                      onClick={() => {
-                        const presetPermissions = permissions.map(p => p.code);
-                        const newPerms = { ...selectedPermissions };
-                        newPerms[module.code] = presetPermissions;
-                        onChange(newPerms);
-                      }}
-                    >
-                      Full Access
-                    </button>
-                  </div>
+                  // In PermissionSelector.js, add this button to the quickActions section:
+<div className={styles.quickActions}>
+  <span className={styles.quickActionsLabel}>Quick Presets:</span>
+  <button
+    type="button"
+    className={styles.quickButton}
+    onClick={() => {
+      const presetPermissions = ['view'];
+      const newPerms = { ...selectedPermissions };
+      newPerms[module.code] = presetPermissions;
+      onChange(newPerms);
+    }}
+  >
+    View Only
+  </button>
+  <button
+    type="button"
+    className={styles.quickButton}
+    onClick={() => {
+      const presetPermissions = ['view', 'create', 'edit'];
+      const newPerms = { ...selectedPermissions };
+      newPerms[module.code] = presetPermissions;
+      onChange(newPerms);
+    }}
+  >
+    Editor
+  </button>
+  <button
+    type="button"
+    className={styles.quickButton}
+    onClick={() => {
+      const presetPermissions = permissions.map(p => p.code);
+      const newPerms = { ...selectedPermissions };
+      newPerms[module.code] = presetPermissions;
+      onChange(newPerms);
+    }}
+  >
+    Full Access
+  </button>
+  {/* Add this new button */}
+  <button
+    type="button"
+    className={`${styles.quickButton} ${styles.defaultButton}`}
+    onClick={() => {
+      // This would need to be implemented to load default permissions
+      // You'll need to pass a prop to handle this
+    }}
+  >
+    Use Default
+  </button>
+</div>
                 </div>
               )}
             </div>

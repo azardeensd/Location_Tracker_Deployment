@@ -1,5 +1,5 @@
 // src/components/Dashboard.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../../Services/api';
 import styles from './Dashboard.module.css';
 import AdminNavigation from '../../Common/Admin/AdminNavigation';
@@ -25,11 +25,19 @@ const Dashboard = () => {
     endDate: ''
   });
   const [filterActive, setFilterActive] = useState(false);
+  
+  // Status filter state
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'completed', 'pending', 'inProgress'
+  
+  // Search states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchType, setSearchType] = useState('all'); // 'all', 'plant', 'vehicle', 'transporter'
+  const [searchActive, setSearchActive] = useState(false);
 
   // Get current user with plant data
-   const getCurrentUser = () => {
+  const getCurrentUser = () => {
     try {
-      // Check adminData first as it contains admin, super_admin, hr, and finance
+      // Check adminData first as it contains admin, super_admin, mmd, and finance
       const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
       if (adminData && adminData.role) {
         return adminData;
@@ -48,14 +56,20 @@ const Dashboard = () => {
     }
   };
 
-  // Get user's plant ID
-  const getUserPlantId = () => {
+  const getUserPlantId = useCallback(() => {
     const user = getCurrentUser();
-    if (user.role === 'admin') {
+    
+    if (user.role === 'admin' || user.role === 'super_admin') {
       return null; // Admin can see all
     }
+    
+    // For transporter/agency users (with agency_id)
+    if (user.agency_id) {
+      return 'agency_user'; // Special flag for agency users
+    }
+    
     return user.plant_id || user.plantid;
-  };
+  }, []);
 
   // Get user's plant name
   const getUserPlantName = () => {
@@ -64,20 +78,31 @@ const Dashboard = () => {
     return user.plant_name || user.plant?.name || user.plant || 'Your Plant';
   };
 
-  // Fetch trips data
-  const fetchTrips = async () => {
+  // Fetch trips function
+  const fetchTrips = useCallback(async () => {
     setLoading(true);
     try {
+      const user = getCurrentUser();
       const userPlantId = getUserPlantId();
-      console.log('🔄 Fetching trips for plant ID:', userPlantId);
+      const agencyId = user.agency_id;
+      
+      console.log('🔄 Fetching trips for user:', {
+        role: user.role,
+        plantId: userPlantId,
+        agencyId: agencyId
+      });
 
       let response;
       
-      if (userPlantId) {
-        // Fetch trips for specific plant
+      if (userPlantId === 'agency_user' && agencyId) {
+        // This is a transporter/agency user - fetch only their trips
+        console.log('👤 Agency user detected, fetching agency-specific trips');
+        response = await api.getTripsByAgency(agencyId);
+      } else if (userPlantId) {
+        // Plant admin - fetch trips for specific plant
         response = await api.getTripsByPlant(userPlantId);
       } else {
-        // Fetch all trips for admin
+        // Admin - fetch all trips
         response = await api.getAllTrips();
       }
 
@@ -91,10 +116,9 @@ const Dashboard = () => {
       const tripsData = response.data || [];
       console.log('📊 Raw trips data:', tripsData);
       setTrips(tripsData);
-      setFilteredTrips(tripsData); // Initialize filtered trips
-
-      // Calculate statistics
-      calculateStats(tripsData);
+      
+      // Apply any active filters when fetching new data
+      applyAllFilters(tripsData);
 
     } catch (err) {
       console.error('❌ Error fetching trips:', err);
@@ -102,52 +126,182 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
+  }, [getUserPlantId]);
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    setCurrentUser(user);
+    fetchTrips();
+  }, [fetchTrips]);
+
+  // Apply search filter
+  const applySearchFilter = (tripsData) => {
+    if (!searchTerm.trim()) {
+      return tripsData;
+    }
+
+    const term = searchTerm.toLowerCase().trim();
+    
+    return tripsData.filter(trip => {
+      switch (searchType) {
+        case 'plant':
+          const plantName = trip.plant?.name || trip.plant_name || trip.plant || '';
+          return plantName.toLowerCase().includes(term);
+        
+        case 'vehicle':
+          const vehicleNumber = trip.vehicle?.vehicle_number || trip.vehicle_number || '';
+          return vehicleNumber.toLowerCase().includes(term);
+        
+        case 'transporter':
+          const transporterName = getTransporterName(trip).toLowerCase();
+          return transporterName.includes(term);
+        
+        case 'all':
+        default:
+          // Search in all fields
+          const plant = (trip.plant?.name || trip.plant_name || trip.plant || '').toLowerCase();
+          const vehicle = (trip.vehicle?.vehicle_number || trip.vehicle_number || '').toLowerCase();
+          const transporter = getTransporterName(trip).toLowerCase();
+          const vendor = getVendorName(trip).toLowerCase();
+          const driver = (trip.driver_name || '').toLowerCase();
+          const tripId = (trip.id || '').toString().toLowerCase();
+          
+          return plant.includes(term) || 
+                 vehicle.includes(term) || 
+                 transporter.includes(term) ||
+                 vendor.includes(term) ||
+                 driver.includes(term) ||
+                 tripId.includes(term);
+      }
+    });
+  };
+
+  // Apply all filters (status, date, and search)
+  const applyAllFilters = (tripsData) => {
+    let filtered = [...tripsData];
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(trip => {
+        const statusLower = (trip.status || '').toLowerCase();
+        
+        switch (statusFilter) {
+          case 'completed':
+            return statusLower === 'completed';
+          case 'pending':
+            return statusLower === 'pending';
+          case 'inProgress':
+            return statusLower === 'active' || 
+                   statusLower === 'in_progress' || 
+                   statusLower === 'in progress';
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply date filter
+    if (dateFilter.startDate || dateFilter.endDate) {
+      filtered = filtered.filter(trip => {
+        const tripDate = trip.Start_Date || trip.created_at?.split('T')[0];
+        if (!tripDate) return false;
+
+        const tripDateObj = new Date(tripDate);
+        
+        if (dateFilter.startDate && dateFilter.endDate) {
+          const startDateObj = new Date(dateFilter.startDate);
+          const endDateObj = new Date(dateFilter.endDate);
+          return tripDateObj >= startDateObj && tripDateObj <= endDateObj;
+        } else if (dateFilter.startDate) {
+          const startDateObj = new Date(dateFilter.startDate);
+          return tripDateObj >= startDateObj;
+        } else if (dateFilter.endDate) {
+          const endDateObj = new Date(dateFilter.endDate);
+          return tripDateObj <= endDateObj;
+        }
+        
+        return true;
+      });
+    }
+
+    // Apply search filter
+    filtered = applySearchFilter(filtered);
+
+    setFilteredTrips(filtered);
+    
+    // Calculate statistics based on filtered trips
+    calculateStats(filtered);
+    
+    // Update filter active state
+    const isAnyFilterActive = 
+      statusFilter !== 'all' || 
+      dateFilter.startDate || 
+      dateFilter.endDate ||
+      searchTerm.trim() !== '';
+    
+    setFilterActive(isAnyFilterActive);
+    setSearchActive(searchTerm.trim() !== '');
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    // Apply all filters with new search term
+    applyAllFilters(trips);
+  };
+
+  // Handle search type change
+  const handleSearchTypeChange = (type) => {
+    setSearchType(type);
+    // Re-apply filters with new search type
+    if (searchTerm.trim()) {
+      applyAllFilters(trips);
+    }
+  };
+
+  // Clear search
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setSearchType('all');
+    applyAllFilters(trips);
+  };
+
+  // Handle status filter click
+  const handleStatusFilterClick = (statusType) => {
+    const newStatusFilter = statusFilter === statusType ? 'all' : statusType;
+    setStatusFilter(newStatusFilter);
+    applyAllFilters(trips);
   };
 
   // Apply date filter
   const applyDateFilter = () => {
-    if (!dateFilter.startDate && !dateFilter.endDate) {
-      setFilteredTrips(trips);
-      setFilterActive(false);
-      calculateStats(trips);
-      return;
-    }
-
-    const filtered = trips.filter(trip => {
-      const tripDate = trip.Start_Date || trip.created_at?.split('T')[0];
-      if (!tripDate) return false;
-
-      const tripDateObj = new Date(tripDate);
-      
-      if (dateFilter.startDate && dateFilter.endDate) {
-        const startDateObj = new Date(dateFilter.startDate);
-        const endDateObj = new Date(dateFilter.endDate);
-        return tripDateObj >= startDateObj && tripDateObj <= endDateObj;
-      } else if (dateFilter.startDate) {
-        const startDateObj = new Date(dateFilter.startDate);
-        return tripDateObj >= startDateObj;
-      } else if (dateFilter.endDate) {
-        const endDateObj = new Date(dateFilter.endDate);
-        return tripDateObj <= endDateObj;
-      }
-      
-      return true;
-    });
-
-    setFilteredTrips(filtered);
-    setFilterActive(true);
-    calculateStats(filtered);
+    applyAllFilters(trips);
   };
 
-  // Clear date filter
+  // Clear all filters
+  const clearAllFilters = () => {
+    setStatusFilter('all');
+    setDateFilter({
+      startDate: '',
+      endDate: ''
+    });
+    setSearchTerm('');
+    setSearchType('all');
+    setFilteredTrips(trips);
+    setFilterActive(false);
+    setSearchActive(false);
+    calculateStats(trips);
+  };
+
+  // Clear date filter only
   const clearDateFilter = () => {
     setDateFilter({
       startDate: '',
       endDate: ''
     });
-    setFilteredTrips(trips);
-    setFilterActive(false);
-    calculateStats(trips);
+    applyAllFilters(trips);
   };
 
   // Calculate dashboard statistics
@@ -176,155 +330,96 @@ const Dashboard = () => {
     });
   };
 
-  // Format Trip ID - FIXED: Handle different ID types
+  // Format Trip ID
   const formatTripId = (id) => {
     if (!id) return 'N/A';
-    
-    // Convert to string first
     const idString = String(id);
-    
-    // If it's a UUID, take last 8 characters
     if (idString.length > 8) {
       return `#${idString.slice(-8)}`;
     }
-    
     return `#${idString}`;
   };
 
-  // Format date from YYYY-MM-DD format
-  const formatDate = (dateString) => {
-    // Check for null/undefined/empty
+  // Format date and time combined
+  const formatDateTime = (dateString, timeString) => {
     if (!dateString || dateString === 'null' || dateString === 'undefined') {
-      return 'N/A';
+      return <div className={styles.dateTimeCell}>N/A</div>;
     }
 
-    console.log('🔍 Processing date:', dateString, 'Type:', typeof dateString);
-
     try {
-      // Handle string dates in YYYY-MM-DD format
-      if (typeof dateString === 'string') {
-        const cleanString = dateString.trim();
-        
-        // Validate YYYY-MM-DD format
-        if (cleanString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          const [year, month, day] = cleanString.split('-');
-          const date = new Date(year, month - 1, day); // month is 0-indexed in JS
-          
-          // Check if date is valid
-          if (isNaN(date.getTime())) {
-            console.log('❌ Invalid date for:', dateString);
-            return 'N/A';
-          }
-
-          // Format the date
-          const formattedDate = date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          });
-
-          console.log('✅ Formatted date:', formattedDate, 'from original:', dateString);
-          return formattedDate;
-        } else {
-          console.log('❌ Date not in YYYY-MM-DD format:', dateString);
-          return 'N/A';
-        }
-      }
-      // Handle numbers (unlikely for YYYY-MM-DD, but just in case)
-      else if (typeof dateString === 'number') {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) {
-          return 'N/A';
-        }
-        return date.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        });
-      }
-      // Unknown type
-      else {
-        console.log('❌ Unknown date type:', typeof dateString, dateString);
-        return 'N/A';
+      let date;
+      const cleanDate = dateString.trim();
+      
+      // Handle date
+      if (cleanDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [year, month, day] = cleanDate.split('-');
+        date = new Date(year, month - 1, day);
+      } else {
+        date = new Date(cleanDate);
       }
 
+      if (isNaN(date.getTime())) {
+        return <div className={styles.dateTimeCell}>N/A</div>;
+      }
+
+      // Format date
+      const formattedDate = date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+
+      // If time is provided, format it too
+      let formattedTime = 'N/A';
+      if (timeString && timeString !== 'null' && timeString !== 'undefined') {
+        const cleanTime = timeString.trim();
+        formattedTime = formatTime(cleanTime);
+      }
+
+      return (
+        <div className={styles.dateTimeCell}>
+          <div className={styles.datePart}>{formattedDate}</div>
+          <div className={styles.timePart}>{formattedTime}</div>
+        </div>
+      );
     } catch (error) {
-      console.log('❌ Error formatting date:', error, 'Input:', dateString);
-      return 'N/A';
+      return <div className={styles.dateTimeCell}>N/A</div>;
     }
   };
 
-  // Simple function to extract and display time from Supabase timestamp
-  const formatTime = (dateString) => {
-    // Check for null/undefined/empty
-    if (!dateString || dateString === 'null' || dateString === 'undefined') {
+  // Format time helper function
+  const formatTime = (timeString) => {
+    if (!timeString || timeString === 'null' || timeString === 'undefined') {
       return 'N/A';
     }
 
-    console.log('🔍 Processing time:', dateString, 'Type:', typeof dateString);
-
-    let date;
-
+    let time;
+    const cleanTime = timeString.trim();
+    
     try {
-      // Handle string dates
-      if (typeof dateString === 'string') {
-        // Remove any extra spaces
-        const cleanString = dateString.trim();
-        
-        // Case 1: PostgreSQL timestamp "2024-01-15 14:30:45"
-        if (cleanString.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)) {
-          date = new Date(cleanString.replace(' ', 'T') + 'Z');
-        }
-        // Case 2: ISO format "2024-01-15T14:30:45.123Z"
-        else if (cleanString.includes('T')) {
-          date = new Date(cleanString);
-        }
-        // Case 3: Just time "14:30:45"
-        else if (cleanString.match(/^\d{1,2}:\d{2}/)) {
-          // Create a date with today's date but the time from string
-          const today = new Date();
-          const [hours, minutes, seconds] = cleanString.split(':');
-          today.setHours(parseInt(hours), parseInt(minutes), seconds ? parseInt(seconds) : 0);
-          date = today;
-        }
-        // Case 4: Try direct parsing
-        else {
-          date = new Date(cleanString);
-        }
-      }
-      // Handle numbers (timestamps)
-      else if (typeof dateString === 'number') {
-        date = new Date(dateString);
-      }
-      // Handle Date objects
-      else if (dateString instanceof Date) {
-        date = dateString;
-      }
-      // Unknown type
-      else {
-        console.log('❌ Unknown date type:', typeof dateString, dateString);
-        return 'N/A';
+      // Check if it's a full datetime string
+      if (cleanTime.includes('T') || cleanTime.includes(' ')) {
+        time = new Date(cleanTime);
+      } else if (cleanTime.match(/^\d{1,2}:\d{2}/)) {
+        const [hours, minutes, seconds] = cleanTime.split(':');
+        const today = new Date();
+        today.setHours(parseInt(hours), parseInt(minutes), seconds ? parseInt(seconds) : 0);
+        time = today;
+      } else {
+        return cleanTime; // Return as is if can't parse
       }
 
-      // Check if date is valid
-      if (!date || isNaN(date.getTime())) {
-        console.log('❌ Invalid date for:', dateString);
-        return 'N/A';
+      if (!time || isNaN(time.getTime())) {
+        return cleanTime;
       }
 
-      // Format the time
-      const formattedTime = date.toLocaleTimeString('en-US', {
+      return time.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true
       });
-
-      console.log('✅ Formatted time:', formattedTime);
-      return formattedTime;
-
     } catch (error) {
-      console.log('❌ Error formatting time:', error, 'Input:', dateString);
-      return 'N/A';
+      return cleanTime;
     }
   };
 
@@ -334,6 +429,22 @@ const Dashboard = () => {
            trip.agency?.name || 
            trip.transporter_name || 
            'N/A';
+  };
+
+  // Get vendor name
+  const getVendorName = (trip) => {
+    return trip.vendor?.name || 
+           trip.vendor_name || 
+           trip.vendorName || 
+           'N/A';
+  };
+
+  // Get end vendor name
+  const getEndVendorName = (trip) => {
+    return trip.end_vendor?.name || 
+           trip.end_vendor_name || 
+           trip.endVendorName || 
+           (trip.status === 'completed' ? trip.vendor?.name || 'N/A' : 'N/A');
   };
 
   // Get start location
@@ -361,7 +472,6 @@ const Dashboard = () => {
   // Get status badge class
   const getStatusClass = (status) => {
     if (!status) return styles.statusDefault;
-    
     const statusLower = status.toLowerCase();
     switch (statusLower) {
       case 'completed':
@@ -380,7 +490,6 @@ const Dashboard = () => {
   // Get display status
   const getDisplayStatus = (status) => {
     if (!status) return 'Unknown';
-    
     const statusLower = status.toLowerCase();
     switch (statusLower) {
       case 'active':
@@ -392,22 +501,17 @@ const Dashboard = () => {
     }
   };
 
-  // Sort trips by status: In Progress first, then Completed, then others
+  // Sort trips
   const getSortedTrips = () => {
     return [...filteredTrips].sort((a, b) => {
       const statusA = getDisplayStatus(a.status).toLowerCase();
       const statusB = getDisplayStatus(b.status).toLowerCase();
-      
-      // Define priority order
       const priority = {
         'in progress': 1,
         'completed': 2
-        // Other statuses will get priority 3
       };
-      
       const priorityA = priority[statusA] || 3;
       const priorityB = priority[statusB] || 3;
-      
       return priorityA - priorityB;
     });
   };
@@ -419,8 +523,8 @@ const Dashboard = () => {
     const originalContent = document.body.innerHTML;
     
     const filterInfo = filterActive ? 
-      `Date Range: ${dateFilter.startDate || 'Any'} to ${dateFilter.endDate || 'Any'}` : 
-      'All Dates';
+      `Filter: ${statusFilter !== 'all' ? statusFilter : 'All Statuses'} | Date Range: ${dateFilter.startDate || 'Any'} to ${dateFilter.endDate || 'Any'}` : 
+      'All Trips';
     
     document.body.innerHTML = `
       <!DOCTYPE html>
@@ -447,11 +551,11 @@ const Dashboard = () => {
           <h1>Trips Report</h1>
           <p>Generated on: ${new Date().toLocaleString()}</p>
           <p>Plant: ${getUserPlantName()}</p>
-          <p>Filter: ${filterInfo}</p>
+          <p>${filterInfo}</p>
         </div>
         ${printContent}
         <div class="print-footer">
-          <p>Total Trips: ${stats.totalTrips} | Completed: ${stats.completedTrips} | In Progress: ${stats.inProgressTrips}</p>
+          <p>Total Trips: ${stats.totalTrips} | Completed: ${stats.completedTrips} | Pending: ${stats.pendingTrips} | In Progress: ${stats.inProgressTrips}</p>
         </div>
       </body>
       </html>
@@ -470,13 +574,13 @@ const Dashboard = () => {
       'Plant',
       'Vehicle',
       'Transporter',
+      'Vendor',
+      'End Vendor',
       'Driver',
       'Start Location',
       'End Location',
-      'Start Date',
-      'Start Time',
-      'End Date', 
-      'End Time',
+      'Start Date & Time',
+      'End Date & Time',
       'Distance (km)',
       'Status'
     ];
@@ -486,13 +590,13 @@ const Dashboard = () => {
       trip.plant?.name || trip.plant_name || trip.plant || 'N/A',
       trip.vehicle?.vehicle_number || trip.vehicle_number || 'N/A',
       getTransporterName(trip),
+      getVendorName(trip),
+      getEndVendorName(trip),
       trip.driver_name || 'N/A',
       getStartLocation(trip),
       getEndLocation(trip),
-      trip.Start_Date || 'N/A',
-      formatTime(trip.start_time),
-      trip.End_Date || 'N/A',
-      formatTime(trip.end_time),
+      `${trip.Start_Date || 'N/A'} ${formatTime(trip.start_time)}`,
+      `${trip.End_Date || 'N/A'} ${formatTime(trip.end_time)}`,
       trip.distance_km || '0',
       getDisplayStatus(trip.status)
     ]);
@@ -502,7 +606,8 @@ const Dashboard = () => {
       ...csvData.map(row => row.map(field => `"${field}"`).join(','))
     ].join('\n');
 
-    const filterInfo = filterActive ? 
+    const statusInfo = statusFilter !== 'all' ? `_${statusFilter}` : '_all_statuses';
+    const dateInfo = filterActive ? 
       `_${dateFilter.startDate || 'all'}_to_${dateFilter.endDate || 'all'}` : 
       '_all_dates';
 
@@ -510,31 +615,24 @@ const Dashboard = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `trips-report${filterInfo}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `trips-report${statusInfo}${dateInfo}_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
-
-  // Initialize component
-  useEffect(() => {
-    const user = getCurrentUser();
-    setCurrentUser(user);
-    fetchTrips();
-  }, []);
 
   const userPlantName = getUserPlantName();
   const isAdmin = currentUser.role === 'admin';
   const sortedTrips = getSortedTrips();
 
   return (
-      <AdminNavigation>
+    <AdminNavigation>
       <div className={styles.dashboard}>
         {/* Header */}
         <div className={styles.header}>
           <div className={styles.headerLeft}>
             <h1 className={styles.title}>Trips Dashboard</h1>
             <p className={styles.subtitle}>
-              {isAdmin ? '' : ``}
+              {isAdmin ? 'All Plants' : `${userPlantName}`}
             </p>
           </div>
           <div className={styles.headerActions}>
@@ -574,7 +672,11 @@ const Dashboard = () => {
           {/* Stats Cards - Left Side */}
           <div className={styles.statsContainer}>
             <div className={styles.statsGrid}>
-              <div className={styles.statCard}>
+              <div 
+                className={`${styles.statCard} ${statusFilter === 'all' ? styles.statCardActive : ''}`}
+                onClick={() => handleStatusFilterClick('all')}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className={styles.statIcon}>📊</div>
                 <div className={styles.statInfo}>
                   <h3 className={styles.statNumber}>{stats.totalTrips}</h3>
@@ -582,7 +684,11 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className={styles.statCard}>
+              <div 
+                className={`${styles.statCard} ${statusFilter === 'completed' ? styles.statCardActive : ''}`}
+                onClick={() => handleStatusFilterClick('completed')}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className={styles.statIcon}>✅</div>
                 <div className={styles.statInfo}>
                   <h3 className={styles.statNumber}>{stats.completedTrips}</h3>
@@ -590,7 +696,11 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className={styles.statCard}>
+              <div 
+                className={`${styles.statCard} ${statusFilter === 'inProgress' ? styles.statCardActive : ''}`}
+                onClick={() => handleStatusFilterClick('inProgress')}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className={styles.statIcon}>⏳</div>
                 <div className={styles.statInfo}>
                   <h3 className={styles.statNumber}>{stats.inProgressTrips}</h3>
@@ -600,8 +710,62 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Date Filter - Right Side */}
+          {/* Search and Filters - Right Side */}
           <div className={styles.filterContainer}>
+            {/* Search Bar */}
+            <div className={styles.searchBarContainer}>
+              <div className={styles.searchBar}>
+                <div className={styles.searchIcon}>🔍</div>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  placeholder={`Search ${searchType === 'all' ? 'trips' : searchType}...`}
+                  className={styles.searchInput}
+                />
+                {searchTerm && (
+                  <button 
+                    className={styles.clearSearchButton}
+                    onClick={handleClearSearch}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              
+              <div className={styles.searchTypeSelector}>
+                <div className={styles.searchTypeButtons}>
+                  <button
+                    className={`${styles.searchTypeButton} ${searchType === 'all' ? styles.activeSearchType : ''}`}
+                    onClick={() => handleSearchTypeChange('all')}
+                  >
+                    All
+                  </button>
+                  {isAdmin && (
+                    <button
+                      className={`${styles.searchTypeButton} ${searchType === 'plant' ? styles.activeSearchType : ''}`}
+                      onClick={() => handleSearchTypeChange('plant')}
+                    >
+                      Plant
+                    </button>
+                  )}
+                  <button
+                    className={`${styles.searchTypeButton} ${searchType === 'vehicle' ? styles.activeSearchType : ''}`}
+                    onClick={() => handleSearchTypeChange('vehicle')}
+                  >
+                    Vehicle
+                  </button>
+                  <button
+                    className={`${styles.searchTypeButton} ${searchType === 'transporter' ? styles.activeSearchType : ''}`}
+                    onClick={() => handleSearchTypeChange('transporter')}
+                  >
+                    Transporter
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Date Filter */}
             <div className={styles.dateFilters}>
               <div className={styles.dateInputGroup}>
                 <label>From Date:</label>
@@ -633,27 +797,67 @@ const Dashboard = () => {
                   onClick={applyDateFilter}
                   disabled={loading}
                 >
-                  🔍 Apply Filter
+                  🔍 Apply Date Filter
                 </button>
-                <button
-                  className={styles.clearFilterButton}
-                  onClick={clearDateFilter}
-                  disabled={!filterActive}
-                >
-                  🗑️ Clear
-                </button>
+                {(filterActive) && (
+                  <button
+                    className={styles.clearFilterButton}
+                    onClick={clearAllFilters}
+                  >
+                    🗑️ Clear All
+                  </button>
+                )}
               </div>
             </div>
-            {filterActive && (
-              <div className={styles.filterInfo}>
-                <p>
-                  Showing trips from <strong>{dateFilter.startDate || 'Any'}</strong> to <strong>{dateFilter.endDate || 'Any'}</strong>
-                  {' '}({filteredTrips.length} of {trips.length} total trips)
-                </p>
-              </div>
-            )}
           </div>
         </div>
+
+        {/* Filter Information Row */}
+        {(filterActive) && (
+          <div className={styles.filterInfoRow}>
+            <div className={styles.filterInfo}>
+              <span className={styles.filterInfoLabel}>Active Filters:</span>
+              <div className={styles.activeFilters}>
+                {statusFilter !== 'all' && (
+                  <span className={styles.activeFilterTag}>
+                    Status: <strong>{statusFilter}</strong>
+                    <button 
+                      onClick={() => handleStatusFilterClick(statusFilter)}
+                      className={styles.removeFilterButton}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
+                {searchActive && (
+                  <span className={styles.activeFilterTag}>
+                    Search: <strong>"{searchTerm}"</strong> in {searchType}
+                    <button 
+                      onClick={handleClearSearch}
+                      className={styles.removeFilterButton}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
+                {(dateFilter.startDate || dateFilter.endDate) && (
+                  <span className={styles.activeFilterTag}>
+                    Date: <strong>{dateFilter.startDate || 'Any'}</strong> to <strong>{dateFilter.endDate || 'Any'}</strong>
+                    <button 
+                      onClick={clearDateFilter}
+                      className={styles.removeFilterButton}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
+              </div>
+              <span className={styles.resultCount}>
+                Showing <strong>{filteredTrips.length}</strong> of <strong>{trips.length}</strong> trips
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Recent Trips Table */}
         <div className={styles.recentTrips}>
@@ -661,7 +865,6 @@ const Dashboard = () => {
             <h2>Recent Trips</h2>
             <span className={styles.tripCount}>
               Showing {sortedTrips.length} trips
-              {filterActive && ` (filtered from ${trips.length} total)`}
             </span>
           </div>
 
@@ -672,12 +875,12 @@ const Dashboard = () => {
               <p>No trips found</p>
               {filterActive ? (
                 <p className={styles.helperText}>
-                  No trips match your date filter. Try adjusting the date range or{' '}
+                  No trips match your filters. Try adjusting the filters or{' '}
                   <button 
-                    onClick={clearDateFilter}
+                    onClick={clearAllFilters}
                     className={styles.clearFilterLink}
                   >
-                    clear the filter
+                    clear all filters
                   </button>
                 </p>
               ) : (
@@ -697,13 +900,13 @@ const Dashboard = () => {
                     {isAdmin && <th>Plant</th>}
                     <th>Vehicle</th>
                     <th>Transporter</th>
+                    <th>Vendor</th>
+                    <th>End Vendor</th>
                     <th>Driver</th>
                     <th>Start Location</th>
                     <th>End Location</th>
-                    <th>Start Date</th>
-                    <th>Start Time</th>
-                    <th>End Date</th>
-                    <th>End Time</th>
+                    <th>Start Date & Time</th>
+                    <th>End Date & Time</th>
                     <th>Distance</th>
                     <th>Status</th>
                   </tr>
@@ -723,13 +926,17 @@ const Dashboard = () => {
                         {trip.vehicle?.vehicle_number || trip.vehicle_number || 'N/A'}
                       </td>
                       <td>{getTransporterName(trip)}</td>
+                      <td>{getVendorName(trip)}</td>
+                      <td>{getEndVendorName(trip)}</td>
                       <td>{trip.driver_name || 'N/A'}</td>
                       <td className={styles.locationCell}>{getStartLocation(trip)}</td>
                       <td className={styles.locationCell}>{getEndLocation(trip)}</td>
-                      <td>{formatDate(trip.Start_Date)}</td>
-                      <td>{formatTime(trip.start_time)}</td>
-                      <td>{formatDate(trip.End_Date)}</td>
-                      <td>{formatTime(trip.end_time)}</td>
+                      <td>
+                        {formatDateTime(trip.Start_Date, trip.start_time)}
+                      </td>
+                      <td>
+                        {formatDateTime(trip.End_Date, trip.end_time)}
+                      </td>
                       <td className={styles.distanceCell}>{getDistance(trip)}</td>
                       <td>
                         <span className={`${styles.statusBadge} ${getStatusClass(trip.status)}`}>
@@ -744,7 +951,7 @@ const Dashboard = () => {
           )}
         </div>
       </div>
-    </ AdminNavigation>
+    </AdminNavigation>
   );
 };
 

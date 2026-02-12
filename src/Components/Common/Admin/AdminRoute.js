@@ -35,6 +35,23 @@ const AdminRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/admin" replace />;
   }
   
+  // SPECIAL HANDLING FOR DRIVERS: Allow access to specific routes
+  if (user.role === 'driver') {
+    // Define which routes drivers can access
+    const driverAllowedRoutes = ['/admin/billing']; // Add more routes as needed
+    
+    // Check if current route is in driver's allowed routes
+    const currentPath = window.location.pathname;
+    if (driverAllowedRoutes.includes(currentPath)) {
+      console.log(`Driver granted access to ${currentPath}`);
+      return children;
+    } else {
+      // For other routes, redirect to driver page
+      console.log(`Driver access denied for ${currentPath}, redirecting to /driver`);
+      return <Navigate to="/driver" replace />;
+    }
+  }
+  
   // If specific roles are specified, check against them
   if (allowedRoles && allowedRoles.length > 0) {
     if (!allowedRoles.includes(user.role)) {
@@ -55,7 +72,7 @@ const AdminRoute = ({ children, allowedRoles }) => {
   }
   
   // Default allowed roles (for backward compatibility)
-  const defaultAdminRoles = ['admin', 'finance', 'hr', 'super_admin'];
+  const defaultAdminRoles = ['admin', 'finance', 'mmd', 'super_admin'];
   
   if (defaultAdminRoles.includes(user.role)) {
     console.log("Access granted: Admin role detected");
