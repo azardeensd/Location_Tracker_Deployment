@@ -511,14 +511,14 @@ const RateMaster = () => {
                             onClick={() => handleEditRate(rate)}
                             title="Edit Rate"
                           >
-                            ✏️ Edit
+                            ✏️
                           </button>
                           <button 
                             className={styles.deleteBtn}
                             onClick={() => handleDeleteRate(rate.id)}
                             title="Delete Rate"
                           >
-                            🗑️ Delete
+                            🗑️
                           </button>
                         </div>
                       </td>
@@ -543,7 +543,7 @@ const RateMaster = () => {
               
               <div className={styles.modalBody}>
                 <div className={styles.formCard}>
-                  <div className={styles.formHeader}>
+                  {/* <div className={styles.formHeader}>
                     {editingRateId && (
                       <div className={styles.editNotice}>
                         <span className={styles.editIcon}>✏️</span>
@@ -553,7 +553,7 @@ const RateMaster = () => {
                         </div>
                       </div>
                     )}
-                  </div>
+                  </div> */}
 
                   {error && <div className={styles.errorMessage}>⚠️ {error}</div>}
                   {success && <div className={styles.successMessage}>✅ {success}</div>}
@@ -569,7 +569,8 @@ const RateMaster = () => {
                         <div className={styles.readOnlyField}>
                           <input
                             type="text"
-                            className={`${styles.formInput} ${styles.disabledInput}`}
+                            // className={`${styles.formInput} ${styles.disabledInput}`}
+                            className={styles.input}
                             value={plants.find(p => p.id === formData.plant_id)?.name || 'N/A'}
                             disabled
                             readOnly
@@ -626,7 +627,8 @@ const RateMaster = () => {
                         <div className={styles.readOnlyField}>
                           <input
                             type="text"
-                            className={`${styles.formInput} ${styles.disabledInput}`}
+                            // className={`${styles.formInput} ${styles.disabledInput}`}
+                            className={styles.input}
                             value={getAgencyName(formData.agency_id)}
                             disabled
                             readOnly
