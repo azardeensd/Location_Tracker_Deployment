@@ -133,57 +133,73 @@ const Supplier = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  if (!validateForm()) return;
+  
+  try {
+    setLoading(true);
     
-    if (!validateForm()) return;
-    
-    try {
-      setLoading(true);
+    // 🔍 DUPLICATE CHECK: Check if supplier already exists in the same plant
+    if (!editingId) {
+      const existingSupplier = suppliers.find(
+        supplier => 
+          supplier.vendor_code === formData.vendor_code && 
+          supplier.plant === formData.plant
+      );
       
-      let finalData;
-      
-      if (editingId) {
-        // 🔒 EDIT MODE: Only allow updating contact information
-        finalData = {
-          contact_person_number: formData.contact_person_number,
-          contact_person_name: formData.contact_person_name,
-          updated_at: new Date().toISOString()
-        };
-        
-        const { error } = await api.supabase
-          .from('vendor')
-          .update(finalData)
-          .eq('id', editingId);
-        
-        if (error) throw error;
-        alert('Supplier contact information updated successfully!');
-      } else {
-        // ADD MODE: Create new supplier with all fields
-        finalData = {
-          ...formData,
-          vendor_code: formData.vendor_code || generateVendorCode(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        
-        const { error } = await api.supabase
-          .from('vendor')
-          .insert([finalData]);
-        
-        if (error) throw error;
-        alert('Supplier added successfully!');
+      if (existingSupplier) {
+        alert(`❌ Supplier with code "${formData.vendor_code}" already exists in plant "${formData.plant}".`);
+        setLoading(false);
+        return;
       }
-      
-      await fetchSuppliers();
-      handleCloseModal();
-      
-    } catch (error) {
-      console.error('Error saving supplier:', error);
-      alert(error.message || 'Failed to save supplier');
-    } finally {
-      setLoading(false);
     }
-  };
+    
+    let finalData;
+    
+    if (editingId) {
+      // 🔓 EDIT MODE: Now includes vendor_name along with contact info
+      finalData = {
+        vendor_name: formData.vendor_name, // ✅ Vendor name is now editable
+        contact_person_number: formData.contact_person_number,
+        contact_person_name: formData.contact_person_name,
+        updated_at: new Date().toISOString()
+      };
+      
+      const { error } = await api.supabase
+        .from('vendor')
+        .update(finalData)
+        .eq('id', editingId);
+      
+      if (error) throw error;
+      alert('✅ Supplier updated successfully!');
+    } else {
+      // ADD MODE: Create new supplier with all fields
+      finalData = {
+        ...formData,
+        vendor_code: formData.vendor_code || generateVendorCode(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      const { error } = await api.supabase
+        .from('vendor')
+        .insert([finalData]);
+      
+      if (error) throw error;
+      alert('✅ Supplier added successfully!');
+    }
+    
+    await fetchSuppliers();
+    handleCloseModal();
+    
+  } catch (error) {
+    console.error('Error saving supplier:', error);
+    alert(error.message || 'Failed to save supplier');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleEdit = (supplier) => {
     setFormData({
