@@ -1016,26 +1016,7 @@ const DriverPage = () => {
         </div>
 
         <div className={styles.formActions}>
-          <button 
-            type="button"
-            className={styles.cancelBtn}
-            onClick={() => {
-              setShowEndPopup(false);
-              setEndVendors([]);
-              setSelectedEndVendor(null);
-              setEndForm({
-                vendor_code: '',
-                end_lat: '',
-                end_lng: '',
-                end_address: '',
-                destinationType: '',
-                end_vendor_code: '',
-                end_vendor_name: ''
-              });
-            }}
-          >
-            Cancel
-          </button>
+          
           <button 
             type="submit"
             className={styles.submitBtn}
