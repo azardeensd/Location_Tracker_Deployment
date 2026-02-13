@@ -101,41 +101,49 @@ const DriverPage = () => {
     }
   };
 
-  const loadVendorsForEndTrip = async () => {
-    try {
-      if (!activeTrip || !activeTrip.plant) {
-        setEndVendors([]);
-        setEndForm(prev => ({ ...prev, vendor_code: '' }));
-        setSelectedEndVendor(null);
-        return;
-      }
+ const loadVendorsForEndTrip = async () => {
+  try {
+    if (!activeTrip || !activeTrip.plant) {
+      setEndVendors([]);
+      setEndForm(prev => ({ ...prev, vendor_code: '' }));
+      setSelectedEndVendor(null);
+      return;
+    }
 
-      const { data: vendorsByName, error: nameError } = await api.getVendorsByPlant(activeTrip.plant);
-      
-      if (!nameError && vendorsByName && vendorsByName.length > 0) {
-        setEndVendors(vendorsByName);
-      } else {
-        if (activeTrip.plant_id) {
-          const { data: vendorsById, error: idError } = await api.getVendorsByPlantId(activeTrip.plant_id);
-          
-          if (!idError && vendorsById) {
-            setEndVendors(vendorsById);
-          } else {
-            setEndVendors([]);
-          }
+    const { data: vendorsByName, error: nameError } = await api.getVendorsByPlant(activeTrip.plant);
+    
+    if (!nameError && vendorsByName && vendorsByName.length > 0) {
+      // 🔍 FILTER OUT THE PICKUP VENDOR FROM THE END TRIP VENDOR LIST
+      const filteredVendors = vendorsByName.filter(
+        vendor => vendor.vendor_code !== activeTrip.vendor_code
+      );
+      setEndVendors(filteredVendors);
+    } else {
+      if (activeTrip.plant_id) {
+        const { data: vendorsById, error: idError } = await api.getVendorsByPlantId(activeTrip.plant_id);
+        
+        if (!idError && vendorsById) {
+          // 🔍 FILTER OUT THE PICKUP VENDOR FROM THE END TRIP VENDOR LIST
+          const filteredVendors = vendorsById.filter(
+            vendor => vendor.vendor_code !== activeTrip.vendor_code
+          );
+          setEndVendors(filteredVendors);
         } else {
           setEndVendors([]);
         }
+      } else {
+        setEndVendors([]);
       }
-      
-      setEndForm(prev => ({ ...prev, vendor_code: '' }));
-      setSelectedEndVendor(null);
-      
-    } catch (error) {
-      console.error('Error loading vendors for end trip:', error);
-      setEndVendors([]);
     }
-  };
+    
+    setEndForm(prev => ({ ...prev, vendor_code: '' }));
+    setSelectedEndVendor(null);
+    
+  } catch (error) {
+    console.error('Error loading vendors for end trip:', error);
+    setEndVendors([]);
+  }
+};
 
   const loadUserData = () => {
     return new Promise((resolve) => {
@@ -467,25 +475,28 @@ const DriverPage = () => {
 };
 
   const handleShowEndPopup = async () => {
-    setLoading(true);
-    try {
-      setEndForm({ 
-        vendor_code: '', 
-        end_lat: '', 
-        end_lng: '', 
-        end_address: '' 
-      });
-      setSelectedEndVendor(null);
-      
-      await loadVendorsForEndTrip();
-      setShowEndPopup(true);
-    } catch (error) {
-      console.error('Error loading vendors for end trip:', error);
-      alert('Error loading vendors. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    setEndForm({ 
+      vendor_code: '', 
+      end_lat: '', 
+      end_lng: '', 
+      end_address: '',
+      destinationType: '',
+      end_vendor_code: '',
+      end_vendor_name: ''
+    });
+    setSelectedEndVendor(null);
+    
+    await loadVendorsForEndTrip();
+    setShowEndPopup(true);
+  } catch (error) {
+    console.error('Error loading vendors for end trip:', error);
+    alert('Error loading vendors. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleVendorChange = (vendorCode) => {
     const vendor = vendors.find(v => v.vendor_code === vendorCode);
@@ -944,22 +955,6 @@ const DriverPage = () => {
     </label>
   </div>
 </div>
-        {/* Plant Auto-fill (when plant is selected) */}
-        {endForm.destinationType === 'plant' && (
-          <div className={styles.formGroup}>
-            <label>Plant Destination *</label>
-            <input 
-              type="text"
-              value={`${activeTrip.plant} (Auto-selected)`}
-              readOnly
-              className={styles.readonlyInput}
-            />
-              {/* <p className={styles.helpText}>
-                The trip will be ended at the plant location
-              </p> */}
-          </div>
-        )}
-
         {/* Inside End Trip Popup form - Supplier dropdown */}
 {endForm.destinationType === 'supplier' && (
   <div className={styles.formGroup}>
@@ -975,20 +970,28 @@ const DriverPage = () => {
       {loading ? (
         <option value="" disabled>Loading vendors...</option>
       ) : endVendors.length === 0 ? (
-        <option value="" disabled>No vendors found for {activeTrip.plant}</option>
+        <option value="" disabled>
+          {activeTrip?.vendor_code 
+            ? `No other vendors found for ${activeTrip.plant} (${activeTrip.vendor_name} is your pickup vendor)`
+            : `No vendors found for ${activeTrip.plant}`}
+        </option>
       ) :
         endVendors.map(vendor => (
-  <option key={vendor.vendor_code} value={vendor.vendor_code}>
-    {vendor.vendor_name.toUpperCase()} - {vendor.vendor_address ? vendor.vendor_address.toUpperCase() : 'ADDRESS NOT AVAILABLE'}
-  </option>
-))}
+          <option key={vendor.vendor_code} value={vendor.vendor_code}>
+            {vendor.vendor_name.toUpperCase()} - {vendor.vendor_address ? vendor.vendor_address.toUpperCase() : 'ADDRESS NOT AVAILABLE'}
+          </option>
+        ))}
     </select>
-          
-            {!loading && endVendors.length === 0 && activeTrip.plant && (
-              <p className={styles.noData}>No vendors found for {activeTrip.plant} plant</p>
-            )}
-          </div>
-        )}
+    
+    {!loading && endVendors.length === 0 && activeTrip.plant && (
+      <p className={styles.noData}>
+        {activeTrip?.vendor_code 
+          ? `Only ${activeTrip.vendor_name} is available as pickup vendor. No other vendors found for ${activeTrip.plant}.`
+          : `No vendors found for ${activeTrip.plant} plant`}
+      </p>
+    )}
+  </div>
+)}
 
         {/* Location Section */}
         <div className={styles.formGroup}>
