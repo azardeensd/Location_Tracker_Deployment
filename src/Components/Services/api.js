@@ -7,7 +7,6 @@ const MAPMYINDIA_API_KEY = '8b8a24aa829d919051bce41caee609af';
 // Initialize Supabase Client (Singleton)
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-
 // CAPTCHA verification
 const verifyCaptcha = async (token) => {
   try {
@@ -574,70 +573,68 @@ export const api = {
     } catch (error) { return { data: null, error }; }
   },
 
-  // In your Services/api.js file
+  // Create rate
+  createRate: async (rateData) => {
+    try {
+      // CRITICAL FIX: Ensure min_km and max_km are null for Kilometer basis
+      const sanitizedData = {
+        plant_id: rateData.plant_id,
+        agency_id: rateData.agency_id,
+        tone: parseFloat(rateData.tone) || 0,
+        type: rateData.type,
+        rate: parseFloat(rateData.rate) || 0,
+        // This is the key fix - set to null for Kilometer, number for Trip
+        min_km: rateData.type === 'Trip' ? (parseFloat(rateData.min_km) || 0) : null,
+        max_km: rateData.type === 'Trip' ? (parseFloat(rateData.max_km) || 0) : null,
+        created_at: new Date().toISOString()
+      };
 
-// Create rate - FIXED
-createRate: async (rateData) => {
-  try {
-    // 🛠️ CRITICAL FIX: Ensure min_km and max_km are null for Kilometer basis
-    const sanitizedData = {
-      plant_id: rateData.plant_id,
-      agency_id: rateData.agency_id,
-      tone: parseFloat(rateData.tone) || 0,
-      type: rateData.type,
-      rate: parseFloat(rateData.rate) || 0,
-      // This is the key fix - set to null for Kilometer, number for Trip
-      min_km: rateData.type === 'Trip' ? (parseFloat(rateData.min_km) || 0) : null,
-      max_km: rateData.type === 'Trip' ? (parseFloat(rateData.max_km) || 0) : null,
-      created_at: new Date().toISOString()
-    };
+      console.log('📤 API createRate - sanitized data:', sanitizedData);
 
-    console.log('📤 API createRate - sanitized data:', sanitizedData);
+      const { data, error } = await supabase
+        .from('rate_master')
+        .insert([sanitizedData])
+        .select();
 
-    const { data, error } = await supabase
-      .from('rate_master')
-      .insert([sanitizedData])
-      .select();
+      if (error) throw error;
+      return { data: data[0], error: null };
+    } catch (error) {
+      console.error('❌ Error creating rate:', error);
+      return { data: null, error };
+    }
+  },
 
-    if (error) throw error;
-    return { data: data[0], error: null };
-  } catch (error) {
-    console.error('❌ Error creating rate:', error);
-    return { data: null, error };
-  }
-},
+  // Update rate
+  updateRate: async (id, rateData) => {
+    try {
+      // CRITICAL FIX: Ensure min_km and max_km are null for Kilometer basis
+      const sanitizedData = {
+        plant_id: rateData.plant_id,
+        agency_id: rateData.agency_id,
+        tone: parseFloat(rateData.tone) || 0,
+        type: rateData.type,
+        rate: parseFloat(rateData.rate) || 0,
+        // This is the key fix - set to null for Kilometer, number for Trip
+        min_km: rateData.type === 'Trip' ? (parseFloat(rateData.min_km) || 0) : null,
+        max_km: rateData.type === 'Trip' ? (parseFloat(rateData.max_km) || 0) : null,
+        updated_at: new Date().toISOString()
+      };
 
-// Update rate - FIXED
-updateRate: async (id, rateData) => {
-  try {
-    // 🛠️ CRITICAL FIX: Ensure min_km and max_km are null for Kilometer basis
-    const sanitizedData = {
-      plant_id: rateData.plant_id,
-      agency_id: rateData.agency_id,
-      tone: parseFloat(rateData.tone) || 0,
-      type: rateData.type,
-      rate: parseFloat(rateData.rate) || 0,
-      // This is the key fix - set to null for Kilometer, number for Trip
-      min_km: rateData.type === 'Trip' ? (parseFloat(rateData.min_km) || 0) : null,
-      max_km: rateData.type === 'Trip' ? (parseFloat(rateData.max_km) || 0) : null,
-      updated_at: new Date().toISOString()
-    };
+      console.log('📤 API updateRate - sanitized data:', sanitizedData);
 
-    console.log('📤 API updateRate - sanitized data:', sanitizedData);
+      const { data, error } = await supabase
+        .from('rate_master')
+        .update(sanitizedData)
+        .eq('id', id)
+        .select();
 
-    const { data, error } = await supabase
-      .from('rate_master')
-      .update(sanitizedData)
-      .eq('id', id)
-      .select();
-
-    if (error) throw error;
-    return { data: data[0], error: null };
-  } catch (error) {
-    console.error('❌ Error updating rate:', error);
-    return { data: null, error };
-  }
-},
+      if (error) throw error;
+      return { data: data[0], error: null };
+    } catch (error) {
+      console.error('❌ Error updating rate:', error);
+      return { data: null, error };
+    }
+  },
 
   deleteRate: async (rateId) => {
     try {
@@ -689,6 +686,63 @@ updateRate: async (id, rateData) => {
 
       return { data: enrichedTrips, error: null };
     } catch (error) { return { data: [], error }; }
+  },
+
+  // Get trips by agency (for transporter users)
+  getTripsByAgency: async (agencyId) => {
+    try {
+      const { data, error } = await supabase.from('Trips')
+        .select(`*, plant:plants(name, location), vehicle:vehicles(vehicle_number, vehicle_type, capacity), agency:agencies(name, code)`)
+        .eq('agency_id', agencyId)
+        .order('created_at', { ascending: false });
+      
+      return { data: data || [], error: error || null };
+    } catch (error) { 
+      console.error('Error fetching trips by agency:', error);
+      return { data: [], error }; 
+    }
+  },
+
+  // Update trip status (for admin cancellation)
+  updateTripStatus: async (tripId, statusData) => {
+    try {
+      console.log('🔄 Updating trip status:', tripId, statusData);
+
+      // Get current user info for audit
+      const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
+      
+      const updatePayload = {
+        status: statusData.status,
+        updated_at: new Date().toISOString()
+      };
+
+      // Add cancellation-specific fields if status is cancelled
+      if (statusData.status === 'cancelled') {
+        updatePayload.cancellation_reason = statusData.cancellation_reason;
+        updatePayload.cancelled_by = statusData.cancelled_by || adminData.userId || adminData.id || null;
+        updatePayload.cancelled_at = statusData.cancelled_at || new Date().toISOString();
+      }
+
+      console.log('📤 Update payload:', updatePayload);
+
+      const { data, error } = await supabase
+        .from('Trips')
+        .update(updatePayload)
+        .eq('id', tripId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Supabase error updating trip status:', error);
+        return { error: { message: error.message } };
+      }
+
+      console.log('✅ Trip status updated successfully:', data);
+      return { data, error: null };
+    } catch (error) {
+      console.error('❌ Exception in updateTripStatus:', error);
+      return { error: { message: error.message } };
+    }
   },
 
   // --- AGENCY METHODS ---
@@ -811,46 +865,110 @@ updateRate: async (id, rateData) => {
   },
 
   startTrip: async (tripData) => {
+  try {
+    const deviceId = generateDeviceId();
+    const { data: activeTrip } = await api.checkDeviceActiveTrip(deviceId);
+    
+    if (activeTrip) return { data: null, error: { message: 'You already have an active trip.' } };
+
+    const requiredFields = ['vehicle_id', 'plant_id', 'start_lat', 'start_lng', 'vendor_code'];
+    const missingFields = requiredFields.filter(field => !tripData[field]);
+    if (missingFields.length > 0) return { data: null, error: { message: `Missing fields: ${missingFields.join(', ')}` } };
+
+    // Get user data from localStorage
+    let agencyId = null;
+    let plantId = null;
     try {
-      const deviceId = generateDeviceId();
-      const { data: activeTrip } = await api.checkDeviceActiveTrip(deviceId);
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      const adminData = JSON.parse(localStorage.getItem('adminData') || '{}');
+      const user = userData.user || adminData;
       
-      if (activeTrip) return { data: null, error: { message: 'You already have an active trip.' } };
-
-      const requiredFields = ['vehicle_id', 'plant_id', 'start_lat', 'start_lng', 'vendor_code'];
-      const missingFields = requiredFields.filter(field => !tripData[field]);
-      if (missingFields.length > 0) return { data: null, error: { message: `Missing fields: ${missingFields.join(', ')}` } };
-
-      const tripInsertData = {
-        agency_id: tripData.agency_id || null,
-        vehicle_id: parseInt(tripData.vehicle_id) || null,
-        vehicle_number: tripData.vehicle_number || null,
-        plant: tripData.plant || null,
-        plant_id: parseInt(tripData.plant_id) || null,
-        driver_name: tripData.driver_name || null,
-        driver_contact: tripData.driver_contact || null,
-        start_lat: parseFloat(tripData.start_lat) || 0,
-        start_lng: parseFloat(tripData.start_lng) || 0,
-        start_address: tripData.start_address || null,
-        Start_Date: new Date().toISOString().split('T')[0],
-        start_time: new Date().toISOString(),
-        status: 'active',
-        device_id: deviceId,
-        vendor_code: tripData.vendor_code?.toString(),
-        vendor_name: tripData.vendor_name?.toString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      const { data, error } = await supabase.from('Trips').insert([tripInsertData]).select().single();
-      
-      if (error) {
-        if (error.code === '23505') return { data: null, error: { message: 'Duplicate trip detected.' } };
-        return { data: null, error: { message: error.message } };
+      // Check if agency_id is a valid UUID
+      if (user?.agency_id && user.agency_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        agencyId = user.agency_id;
       }
-      return { data, error: null };
-    } catch (error) { return { data: null, error: { message: error.message } }; }
-  },
+      
+      // Check if plant_id is a valid UUID
+      if (user?.plant_id && user.plant_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        plantId = user.plant_id;
+      }
+    } catch (e) {
+      console.warn('Could not get user data:', e);
+    }
+
+    // If we couldn't get UUIDs from user data, we need to fetch them
+    if (!plantId && tripData.plant_id) {
+      // Fetch the plant UUID using the provided plant_id (which might be a number or code)
+      const { data: plant } = await supabase
+        .from('plants')
+        .select('id')
+        .eq('id', tripData.plant_id)
+        .maybeSingle();
+      
+      if (plant) {
+        plantId = plant.id;
+      } else {
+        // Try to find by plant name or code
+        const { data: plantByName } = await supabase
+          .from('plants')
+          .select('id')
+          .eq('name', tripData.plant)
+          .maybeSingle();
+        
+        if (plantByName) {
+          plantId = plantByName.id;
+        }
+      }
+    }
+
+    if (!agencyId && tripData.agency_id) {
+      // Fetch the agency UUID
+      const { data: agency } = await supabase
+        .from('agencies')
+        .select('id')
+        .eq('id', tripData.agency_id)
+        .maybeSingle();
+      
+      if (agency) {
+        agencyId = agency.id;
+      }
+    }
+
+    const tripInsertData = {
+      agency_id: agencyId, // This will be a proper UUID or null
+      vehicle_id: parseInt(tripData.vehicle_id) || null,
+      vehicle_number: tripData.vehicle_number || null,
+      plant: tripData.plant || null,
+      plant_id: plantId, // This will be a proper UUID or null
+      driver_name: tripData.driver_name || null,
+      driver_contact: tripData.driver_contact || null,
+      start_lat: parseFloat(tripData.start_lat) || 0,
+      start_lng: parseFloat(tripData.start_lng) || 0,
+      start_address: tripData.start_address || null,
+      Start_Date: new Date().toISOString().split('T')[0],
+      start_time: new Date().toISOString(),
+      status: 'active',
+      device_id: deviceId,
+      vendor_code: tripData.vendor_code?.toString(),
+      vendor_name: tripData.vendor_name?.toString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    console.log('📤 Starting trip with data:', JSON.stringify(tripInsertData, null, 2));
+
+    const { data, error } = await supabase.from('Trips').insert([tripInsertData]).select().single();
+    
+    if (error) {
+      console.error('❌ Error starting trip:', error);
+      return { data: null, error: { message: error.message } };
+    }
+    return { data, error: null };
+  } catch (error) { 
+    console.error('❌ Exception in startTrip:', error);
+    return { data: null, error: { message: error.message } }; 
+  }
+},
 
   endTrip: async (tripId, endData) => {
     try {
