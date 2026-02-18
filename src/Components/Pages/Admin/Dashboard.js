@@ -9,15 +9,22 @@ const Dashboard = () => {
   const [filteredTrips, setFilteredTrips] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [cancellingTripId, setCancellingTripId] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState(null);
+  const [cancellationReason, setCancellationReason] = useState('');
   const [stats, setStats] = useState({
     totalTrips: 0,
     completedTrips: 0,
     pendingTrips: 0,
     inProgressTrips: 0,
+    cancelledTrips: 0,
     totalDistance: 0
   });
   const [currentUser, setCurrentUser] = useState({});
   const tableRef = useRef();
+  const modalRef = useRef();
 
   // Date filter states
   const [dateFilter, setDateFilter] = useState({
@@ -26,8 +33,8 @@ const Dashboard = () => {
   });
   const [filterActive, setFilterActive] = useState(false);
   
-  // Status filter state
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'completed', 'pending', 'inProgress'
+  // Status filter state - updated to include 'cancelled'
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'completed', 'pending', 'inProgress', 'cancelled'
   
   // Search states
   const [searchTerm, setSearchTerm] = useState('');
@@ -77,6 +84,9 @@ const Dashboard = () => {
     if (user.role === 'admin') return 'All Plants';
     return user.plant_name || user.plant?.name || user.plant || 'Your Plant';
   };
+
+  // Check if user is admin
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'super_admin';
 
   // Fetch trips function
   const fetchTrips = useCallback(async () => {
@@ -134,6 +144,23 @@ const Dashboard = () => {
     fetchTrips();
   }, [fetchTrips]);
 
+  // Handle click outside modal to close
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        handleCloseCancelModal();
+      }
+    };
+
+    if (showCancelModal) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCancelModal]);
+
   // Apply search filter
   const applySearchFilter = (tripsData) => {
     if (!searchTerm.trim()) {
@@ -176,7 +203,7 @@ const Dashboard = () => {
     });
   };
 
-  // Apply all filters (status, date, and search)
+  // Apply all filters (status, date, and search) - updated with cancelled status
   const applyAllFilters = (tripsData) => {
     let filtered = [...tripsData];
 
@@ -194,6 +221,10 @@ const Dashboard = () => {
             return statusLower === 'active' || 
                    statusLower === 'in_progress' || 
                    statusLower === 'in progress';
+          case 'cancelled':
+            return statusLower === 'cancelled' || 
+                   statusLower === 'canceled' || 
+                   statusLower === 'cancelled';
           default:
             return true;
         }
@@ -268,7 +299,7 @@ const Dashboard = () => {
     applyAllFilters(trips);
   };
 
-  // Handle status filter click
+  // Handle status filter click - updated with cancelled
   const handleStatusFilterClick = (statusType) => {
     const newStatusFilter = statusFilter === statusType ? 'all' : statusType;
     setStatusFilter(newStatusFilter);
@@ -304,7 +335,7 @@ const Dashboard = () => {
     applyAllFilters(trips);
   };
 
-  // Calculate dashboard statistics
+  // Calculate dashboard statistics - updated with cancelled trips
   const calculateStats = (tripsData) => {
     const totalTrips = tripsData.length;
     const completedTrips = tripsData.filter(trip => 
@@ -316,6 +347,9 @@ const Dashboard = () => {
     const inProgressTrips = tripsData.filter(trip => 
       trip.status === 'active' || trip.status === 'in_progress' || trip.status === 'In Progress'
     ).length;
+    const cancelledTrips = tripsData.filter(trip => 
+      trip.status === 'cancelled' || trip.status === 'Cancelled' || trip.status === 'canceled'
+    ).length;
     
     const totalDistance = tripsData.reduce((sum, trip) => {
       return sum + (parseFloat(trip.distance_km) || 0);
@@ -326,8 +360,73 @@ const Dashboard = () => {
       completedTrips,
       pendingTrips,
       inProgressTrips,
+      cancelledTrips,
       totalDistance: Math.round(totalDistance * 100) / 100
     });
+  };
+
+  // Cancel trip function
+  const handleCancelTrip = async () => {
+    if (!selectedTrip || !cancellationReason.trim()) {
+      setError('Please provide a cancellation reason');
+      return;
+    }
+
+    setCancellingTripId(selectedTrip.id);
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      console.log('🚫 Cancelling trip:', selectedTrip.id, 'Reason:', cancellationReason);
+
+      // Call API to cancel trip
+      const response = await api.updateTripStatus(selectedTrip.id, {
+        status: 'cancelled',
+        cancellation_reason: cancellationReason,
+        cancelled_by: currentUser.id || currentUser.userId || 'admin',
+        cancelled_at: new Date().toISOString()
+      });
+
+      console.log('✅ Cancel response:', response);
+
+      if (response.error) {
+        setError(response.error.message || 'Failed to cancel trip');
+        return;
+      }
+
+      // Show success message
+      setSuccess(`Trip #${formatTripId(selectedTrip.id)} has been cancelled successfully`);
+
+      // Close modal
+      handleCloseCancelModal();
+
+      // Refresh trips data
+      await fetchTrips();
+
+    } catch (err) {
+      console.error('❌ Error cancelling trip:', err);
+      setError('Error cancelling trip: ' + err.message);
+    } finally {
+      setLoading(false);
+      setCancellingTripId(null);
+    }
+  };
+
+  // Open cancel modal
+  const handleOpenCancelModal = (trip) => {
+    setSelectedTrip(trip);
+    setCancellationReason('');
+    setError('');
+    setShowCancelModal(true);
+  };
+
+  // Close cancel modal
+  const handleCloseCancelModal = () => {
+    setShowCancelModal(false);
+    setSelectedTrip(null);
+    setCancellationReason('');
+    setError('');
   };
 
   // Format Trip ID
@@ -469,7 +568,7 @@ const Dashboard = () => {
     return trip.distance_km ? `${trip.distance_km} km` : 'N/A';
   };
 
-  // Get status badge class
+  // Get status badge class - updated with cancelled
   const getStatusClass = (status) => {
     if (!status) return styles.statusDefault;
     const statusLower = status.toLowerCase();
@@ -482,12 +581,15 @@ const Dashboard = () => {
         return styles.statusInProgress;
       case 'pending':
         return styles.statusPending;
+      case 'cancelled':
+      case 'canceled':
+        return styles.statusCancelled;
       default:
         return styles.statusDefault;
     }
   };
 
-  // Get display status
+  // Get display status - updated with cancelled
   const getDisplayStatus = (status) => {
     if (!status) return 'Unknown';
     const statusLower = status.toLowerCase();
@@ -496,22 +598,36 @@ const Dashboard = () => {
         return 'In Progress';
       case 'in_progress':
         return 'In Progress';
+      case 'cancelled':
+      case 'canceled':
+        return 'Cancelled';
       default:
         return status.replace('_', ' ');
     }
   };
 
-  // Sort trips
+  // Check if trip can be cancelled (only in progress trips)
+  const canCancelTrip = (trip) => {
+    if (!isAdmin) return false;
+    const statusLower = (trip.status || '').toLowerCase();
+    return statusLower === 'active' || 
+           statusLower === 'in_progress' || 
+           statusLower === 'in progress';
+  };
+
+  // Sort trips - updated with cancelled priority
   const getSortedTrips = () => {
     return [...filteredTrips].sort((a, b) => {
       const statusA = getDisplayStatus(a.status).toLowerCase();
       const statusB = getDisplayStatus(b.status).toLowerCase();
       const priority = {
         'in progress': 1,
-        'completed': 2
+        'pending': 2,
+        'completed': 3,
+        'cancelled': 4
       };
-      const priorityA = priority[statusA] || 3;
-      const priorityB = priority[statusB] || 3;
+      const priorityA = priority[statusA] || 5;
+      const priorityB = priority[statusB] || 5;
       return priorityA - priorityB;
     });
   };
@@ -555,7 +671,7 @@ const Dashboard = () => {
         </div>
         ${printContent}
         <div class="print-footer">
-          <p>Total Trips: ${stats.totalTrips} | Completed: ${stats.completedTrips} | Pending: ${stats.pendingTrips} | In Progress: ${stats.inProgressTrips}</p>
+          <p>Total Trips: ${stats.totalTrips} | Completed: ${stats.completedTrips} | Pending: ${stats.pendingTrips} | In Progress: ${stats.inProgressTrips} | Cancelled: ${stats.cancelledTrips}</p>
         </div>
       </body>
       </html>
@@ -566,7 +682,7 @@ const Dashboard = () => {
     window.location.reload();
   };
 
-  // Export to CSV
+  // Export to CSV - updated with cancelled status
   const handleExportCSV = () => {
     const sortedTrips = getSortedTrips();
     const headers = [
@@ -582,7 +698,8 @@ const Dashboard = () => {
       'Start Date & Time',
       'End Date & Time',
       'Distance (km)',
-      'Status'
+      'Status',
+      'Cancellation Reason' // Added cancellation reason column
     ];
 
     const csvData = sortedTrips.map(trip => [
@@ -598,7 +715,8 @@ const Dashboard = () => {
       `${trip.Start_Date || 'N/A'} ${formatTime(trip.start_time)}`,
       `${trip.End_Date || 'N/A'} ${formatTime(trip.end_time)}`,
       trip.distance_km || '0',
-      getDisplayStatus(trip.status)
+      getDisplayStatus(trip.status),
+      trip.cancellation_reason || '' // Include cancellation reason if available
     ]);
 
     const csvContent = [
@@ -621,7 +739,6 @@ const Dashboard = () => {
   };
 
   const userPlantName = getUserPlantName();
-  const isAdmin = currentUser.role === 'admin';
   const sortedTrips = getSortedTrips();
 
   return (
@@ -660,6 +777,15 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Success Message */}
+        {success && (
+          <div className={styles.successMessage}>
+            ✅ {success}
+            <button onClick={() => setSuccess('')} className={styles.dismissSuccess}>×</button>
+          </div>
+        )}
+
+        {/* Error Message */}
         {error && (
           <div className={styles.errorMessage}>
             ⚠️ {error}
@@ -697,6 +823,18 @@ const Dashboard = () => {
               </div>
 
               <div 
+                className={`${styles.statCard} ${statusFilter === 'pending' ? styles.statCardActive : ''}`}
+                onClick={() => handleStatusFilterClick('pending')}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className={styles.statIcon}>⏰</div>
+                <div className={styles.statInfo}>
+                  <h3 className={styles.statNumber}>{stats.pendingTrips}</h3>
+                  <p className={styles.statLabel}>Pending</p>
+                </div>
+              </div>
+
+              <div 
                 className={`${styles.statCard} ${statusFilter === 'inProgress' ? styles.statCardActive : ''}`}
                 onClick={() => handleStatusFilterClick('inProgress')}
                 style={{ cursor: 'pointer' }}
@@ -705,6 +843,18 @@ const Dashboard = () => {
                 <div className={styles.statInfo}>
                   <h3 className={styles.statNumber}>{stats.inProgressTrips}</h3>
                   <p className={styles.statLabel}>In Progress</p>
+                </div>
+              </div>
+
+              <div 
+                className={`${styles.statCard} ${statusFilter === 'cancelled' ? styles.statCardActive : ''}`}
+                onClick={() => handleStatusFilterClick('cancelled')}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className={styles.statIcon}>❌</div>
+                <div className={styles.statInfo}>
+                  <h3 className={styles.statNumber}>{stats.cancelledTrips}</h3>
+                  <p className={styles.statLabel}>Cancelled</p>
                 </div>
               </div>
             </div>
@@ -909,11 +1059,12 @@ const Dashboard = () => {
                     <th>End Date & Time</th>
                     <th>Distance</th>
                     <th>Status</th>
+                    {isAdmin && <th>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {sortedTrips.map((trip) => (
-                    <tr key={trip.id}>
+                    <tr key={trip.id} className={trip.status === 'cancelled' ? styles.cancelledRow : ''}>
                       <td className={styles.tripId}>
                         {formatTripId(trip.id)}
                       </td>
@@ -942,7 +1093,26 @@ const Dashboard = () => {
                         <span className={`${styles.statusBadge} ${getStatusClass(trip.status)}`}>
                           {getDisplayStatus(trip.status)}
                         </span>
+                        {trip.status === 'cancelled' && trip.cancellation_reason && (
+                          <div className={styles.cancellationReason}>
+                            Reason: {trip.cancellation_reason}
+                          </div>
+                        )}
                       </td>
+                      {isAdmin && (
+                        <td>
+                          {canCancelTrip(trip) && (
+                            <button
+                              className={styles.cancelButton}
+                              onClick={() => handleOpenCancelModal(trip)}
+                              disabled={loading && cancellingTripId === trip.id}
+                              title="Cancel Trip"
+                            >
+                              {cancellingTripId === trip.id ? '⏳' : '❌'} Cancel
+                            </button>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -950,6 +1120,78 @@ const Dashboard = () => {
             </div>
           )}
         </div>
+
+        {/* Cancel Trip Modal */}
+        {showCancelModal && selectedTrip && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modal} ref={modalRef}>
+              <div className={styles.modalHeader}>
+                <h3>Cancel Trip</h3>
+                <button 
+                  className={styles.modalCloseButton}
+                  onClick={handleCloseCancelModal}
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className={styles.modalBody}>
+                <p className={styles.modalWarning}>
+                  ⚠️ You are about to cancel this trip. This action cannot be undone.
+                </p>
+                
+                <div className={styles.tripInfo}>
+                  <p><strong>Trip ID:</strong> {formatTripId(selectedTrip.id)}</p>
+                  <p><strong>Vehicle:</strong> {selectedTrip.vehicle?.vehicle_number || selectedTrip.vehicle_number || 'N/A'}</p>
+                  <p><strong>Driver:</strong> {selectedTrip.driver_name || 'N/A'}</p>
+                  <p><strong>Current Status:</strong> 
+                    <span className={`${styles.statusBadge} ${getStatusClass(selectedTrip.status)}`}>
+                      {getDisplayStatus(selectedTrip.status)}
+                    </span>
+                  </p>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="cancellationReason" className={styles.required}>
+                    Cancellation Reason:
+                  </label>
+                  <textarea
+                    id="cancellationReason"
+                    value={cancellationReason}
+                    onChange={(e) => setCancellationReason(e.target.value)}
+                    placeholder="Please provide a reason for cancelling this trip..."
+                    rows="4"
+                    className={styles.textarea}
+                    required
+                  />
+                </div>
+
+                {error && (
+                  <div className={styles.modalError}>
+                    ⚠️ {error}
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.modalFooter}>
+                <button
+                  className={styles.modalCancelButton}
+                  onClick={handleCloseCancelModal}
+                  disabled={loading}
+                >
+                  No, Keep Trip
+                </button>
+                <button
+                  className={styles.modalConfirmButton}
+                  onClick={handleCancelTrip}
+                  disabled={loading || !cancellationReason.trim()}
+                >
+                  {loading ? 'Cancelling...' : 'Yes, Cancel Trip'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AdminNavigation>
   );
