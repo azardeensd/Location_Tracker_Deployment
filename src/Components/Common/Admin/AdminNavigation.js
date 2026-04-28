@@ -280,7 +280,7 @@ const AdminNavigation = ({ children }) => {
       icon: '💰',
       label: 'Rate Master',
       path: '/admin/rate-master',
-      roles: ['super_admin', 'admin', 'finance'],
+      roles: ['super_admin', 'admin', 'finance','plant_admin'],
     },
     // 6. Billing - Finance & MMD & Super Admin & DRIVER
     {
