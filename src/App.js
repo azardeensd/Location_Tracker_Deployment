@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import AdminRoute from './Components/Common/Admin/AdminRoute';
 import PlantAdminRoute from './Components/Common/Admin/PlantAdminRoute';
 
@@ -18,6 +19,7 @@ import Billing from './Components/Pages/Admin/Billing';
 function App() {
   return (
     <Router>
+      <Analytics />
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
