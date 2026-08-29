@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import AdminRoute from './Components/Common/Admin/AdminRoute';
 import PlantAdminRoute from './Components/Common/Admin/PlantAdminRoute';
 
@@ -101,6 +102,7 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/admin-login" element={<Navigate to="/admin" replace />} />
       </Routes>
+      <Analytics />
     </Router>
   );
 }
